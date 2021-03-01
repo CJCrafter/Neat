@@ -1,29 +1,29 @@
 package me.cjcrafter.neat.genome;
 
 import me.cjcrafter.neat.Neat;
-import me.cjcrafter.neat.SortList;
+import me.cjcrafter.neat.SortedList;
 
 import java.util.Comparator;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Genome {
 
-    private final SortList<ConnectionGene> connections;
-    private final SortList<NodeGene> nodes;
+    private final SortedList<ConnectionGene> connections;
+    private final SortedList<NodeGene> nodes;
     private final Neat neat;
 
     public Genome(Neat neat) {
         this.neat = neat;
 
-        this.connections = new SortList<>(Comparator.comparingInt(Gene::getId), ConnectionGene.class);
-        this.nodes = new SortList<>(Comparator.comparingInt(Gene::getId), NodeGene.class);
+        this.connections = new SortedList<>(Comparator.comparingInt(Gene::getId), ConnectionGene.class);
+        this.nodes = new SortedList<>(Comparator.comparingInt(Gene::getId), NodeGene.class);
     }
 
-    public SortList<ConnectionGene> getConnections() {
+    public SortedList<ConnectionGene> getConnections() {
         return connections;
     }
 
-    public SortList<NodeGene> getNodes() {
+    public SortedList<NodeGene> getNodes() {
         return nodes;
     }
 

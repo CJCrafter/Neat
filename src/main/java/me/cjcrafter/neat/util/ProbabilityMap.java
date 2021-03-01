@@ -1,4 +1,4 @@
-package me.cjcrafter.neat;
+package me.cjcrafter.neat.util;
 
 import java.util.Comparator;
 import java.util.Objects;

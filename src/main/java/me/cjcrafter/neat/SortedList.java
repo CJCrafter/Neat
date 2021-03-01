@@ -6,7 +6,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.RandomAccess;
 
-public class SortList<E> extends AbstractList<E> implements List<E>, RandomAccess {
+public class SortedList<E> extends AbstractList<E> implements List<E>, RandomAccess {
 
     private final Comparator<E> comparator;
     private final Class<E> clazz;
@@ -14,7 +14,7 @@ public class SortList<E> extends AbstractList<E> implements List<E>, RandomAcces
     private E[] arr;
     private int size;
 
-    public SortList(Comparator<E> comparator, Class<E> clazz) {
+    public SortedList(Comparator<E> comparator, Class<E> clazz) {
         this.comparator = comparator;
         this.clazz = clazz;
     }
@@ -24,11 +24,11 @@ public class SortList<E> extends AbstractList<E> implements List<E>, RandomAcces
         if (index < 0 || index >= size)
             throw new ArrayIndexOutOfBoundsException("For index " + index + " in size " + size);
 
-        return 
+        return arr[index];
     }
 
     @Override
     public int size() {
-        return 0;
+        return size;
     }
 }

@@ -1,6 +1,6 @@
 package me.cjcrafter.neat.genome;
 
-import me.cjcrafter.neat.SortList;
+import me.cjcrafter.neat.SortedList;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -41,7 +41,7 @@ public enum Mutation {
             // Try to mutate a new link 100 times. 100 times is most likely
             // always going to be enough tries to mutate a link.
             for (int i = 0; i < 100; i++) {
-                SortList<NodeGene> nodes = genome.getNodes();
+                SortedList<NodeGene> nodes = genome.getNodes();
 
                 NodeGene a = nodes.getRandomElement();
                 NodeGene b = nodes.getRandomElement();
