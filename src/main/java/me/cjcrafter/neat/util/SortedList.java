@@ -2,7 +2,6 @@ package me.cjcrafter.neat.util;
 
 import java.util.AbstractSet;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -41,6 +40,11 @@ public class SortedList<E> extends AbstractSet<E> {
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
+    private static int hash(Object key) {
+        int hash;
+        return key == null ? 0 : (hash = key.hashCode()) ^ (hash >>> 16);
+    }
+
 
     private Node<E>[] table;
     private Node<E> head, tail;
@@ -59,6 +63,121 @@ public class SortedList<E> extends AbstractSet<E> {
         this.threshold = tableSizeFor(initialCapacity);
     }
 
+    // Public operations
+
+    @Override
+    public int size() {
+        return size;
+    }
+
+    public int maxHashCode() {
+        return table.length - 1;
+    }
+
+    public E get(E element) {
+        Node<E> node = getNode(element);
+        return node == null ? null : node.key;
+    }
+
+    public E get(int index) {
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException("Illegal index: " + index);
+
+        Node<E> node = head;
+        for (int i = 0; i < index; i++) {
+            node = node.after;
+        }
+
+        return node.key;
+    }
+
+    public E getHead() {
+        return head == null ? null : head.key;
+    }
+
+    public E getTail() {
+        return tail == null ? null : tail.key;
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return o != null && getNode(o) != null;
+    }
+
+    @Override
+    public boolean add(E element) {
+        if (element == null)
+            throw new IllegalArgumentException("Element cannot be null");
+        if (table == null || table.length == 0)
+            table = resize();
+
+        Node<E> node;
+        int length = table.length;
+        int hash = hash(element);
+        int i = (length - 1) & hash;
+
+        if ((node = table[i]) == null) {
+            node = new Node<>(element, hash);
+            linkLast(node);
+            table[i] = node;
+        } else if (node.hash == hash && (node.key.equals(element))) {
+            node.key = element;
+            return true;
+        } else {
+            throw new DuplicateHashException();
+        }
+
+        if (++size > threshold)
+            resize();
+        return true;
+    }
+
+    public void insert(E node, E element) {
+        Node<E> n = getNode(node);
+        if (n == null) {
+            throw new IllegalArgumentException("Unknown node: " + node);
+        }
+
+        insertNode(n, element);
+    }
+
+    @Override
+    public boolean remove(Object other) {
+        int hash = other.hashCode();
+        Node<E> node;
+        int length, index;
+        if (table != null && (length = table.length) > 0 && (node = table[index = (length - 1) & hash]) != null) {
+            if (node.hash == hash && node.key.equals(other)) {
+                table[index] = null;
+            }
+            size--;
+            unlinkNode(node);
+
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void clear() {
+        if (table != null && size > 0) {
+            size = 0;
+            Arrays.fill(table, null);
+            head = tail = null;
+        }
+    }
+
+    public E getRandomElement() {
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(table);
+    }
+
+    // Internal operations
+
     private Node<E>[] resize() {
         Node<E>[] oldTable = table;
         int oldCap = (oldTable == null) ? 0 : oldTable.length;
@@ -74,7 +193,7 @@ public class SortedList<E> extends AbstractSet<E> {
                 newThr = oldThr << 1;
             }
         } else if (oldThr > 0) {
-          newCap = oldThr;
+            newCap = oldThr;
         } else {
             newCap = INITIAL_CAPACITY;
             newThr = (int) (LOAD_FACTOR * INITIAL_CAPACITY);
@@ -147,19 +266,17 @@ public class SortedList<E> extends AbstractSet<E> {
         }
     }
 
-    private int hash(Object key) {
-        int hash;
-        return key == null ? 0 : (hash = key.hashCode()) ^ (hash >>> 16);
-    }
-
     private Node<E> getNode(Object key) {
         Node<E> first, node;
-        int length, hash = key.hashCode();
+        int length, hash = hash(key);
 
         if (table != null && (length = table.length) > 0 && (first = table[(length - 1) & hash]) != null) {
             if (first.hash == hash && first.key.equals(key)) {
                 return first;
             }
+
+            // This code should never be executed, testing needed
+            if (true) throw new DuplicateHashException();
             if ((node = first.after) != null) {
                 do {
                     if (node.hash == hash && node.key.equals(key))
@@ -170,82 +287,57 @@ public class SortedList<E> extends AbstractSet<E> {
         return null;
     }
 
-    @Override
-    public int size() {
-        return size;
-    }
+    private void insertNode(Node<E> node, E element) {
+        int hash = hash(element);
+        int index = (table.length - 1) & hash;
 
-    @Override
-    public boolean contains(Object o) {
-        return o != null && getNode(o) != null;
-    }
+        Node<E> temp = table[index];
+        Node<E> after = node.after;
 
-    @Override
-    public boolean add(E e) {
-        if (table == null || table.length == 0) {
-            table = resize();
-        }
+        if (temp == null) {
+            table[index] = temp = new Node<>(element, hash);
+            size++;
 
-        Node<E> node;
-        int length = table.length;
-        int hash = hash(e);
-        int i = (length - 1) & hash;
-
-        if ((node = table[i]) == null) {
-            node = new Node<>(e, hash);
-            linkLast(node);
-            table[i] = node;
-        } else if (node.hash == hash && (node.key.equals(e))) {
-            node.key = e;
-
-            return true;
-        } else {
-            throw new InternalError("Oops");
-        }
-
-        if (++size > threshold)
-            resize();
-        return true;
-    }
-
-    @Override
-    public boolean remove(Object other) {
-        int hash = other.hashCode();
-        Node<E> node;
-        int length, index;
-        if (table != null && (length = table.length) > 0 && (node = table[index = (length - 1) & hash]) != null) {
-            if (node.hash == hash && node.key.equals(other)) {
-                table[index] = node.after;
+            temp.before = node;
+            node.after = temp;
+            if (after != null) {
+                temp.after = after;
+                after.before = temp;
+            } else {
+                tail = temp;
             }
-            size--;
-
-            // unlink node
-            Node<E> before = node.before, after = node.after;
-            node.before = node.after = null;
-            if (before == null)
-                head = after;
-            else
-                before.after = after;
-            if (after == null)
-                tail = before;
-            else
-                after.before = before;
-
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public void clear() {
-        if (table != null && size > 0) {
-            size = 0;
-            Arrays.fill(table, null);
+        } else {
+            throw duplicateHash(node, temp);
         }
     }
 
+    private void unlinkNode(Node<E> node) {
+        Node<E> before = node.before, after = node.after;
+        node.before = node.after = null;
+        if (before == null)
+            head = after;
+        else
+            before.after = after;
+        if (after == null)
+            tail = before;
+        else
+            after.before = before;
+    }
+
+    private void removeNode(Node<E> node) {
+        int index = (table.length - 1) & node.hash;
+        table[index] = null;
+        unlinkNode(node);
+    }
+
+    private DuplicateHashException duplicateHash(Node<E> a, Node<E> b) {
+        return new DuplicateHashException("For nodes " + a + "(" + a.hash + ") & " + b + "(" + b.hash + ")");
+    }
+
+    // Iterators
+
     @Override
-    public Iterator<E> iterator() {
+    public SortedIterator<E> iterator() {
         return new LinkedIterator();
     }
 
@@ -264,7 +356,7 @@ public class SortedList<E> extends AbstractSet<E> {
                 throw new IllegalStateException();
             }
 
-            //SortedList.this.insert(current, element);
+            SortedList.this.insertNode(current, element);
         }
 
         @Override
@@ -294,8 +386,7 @@ public class SortedList<E> extends AbstractSet<E> {
                 throw new IllegalStateException();
             }
 
-            //SortedList.this.removeNode(current);
+            SortedList.this.removeNode(current);
         }
     }
-
 }

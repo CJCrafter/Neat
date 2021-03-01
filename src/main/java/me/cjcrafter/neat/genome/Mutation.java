@@ -1,6 +1,6 @@
 package me.cjcrafter.neat.genome;
 
-import me.cjcrafter.neat.SortedList;
+import me.cjcrafter.neat.util.SortedList;
 
 import java.util.concurrent.ThreadLocalRandom;
 
