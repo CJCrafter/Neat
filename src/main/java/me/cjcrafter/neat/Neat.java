@@ -11,7 +11,8 @@ import java.util.Map;
 
 public class Neat {
 
-    public static final int MAX_NODES = 1048576;
+    public static final int MAX_NODE_BITS = 8;
+    public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
     private double factor1 = 1.0, factor2 = 1.0, factor3 = 1.0;
     private double randomWeightStrength = 1.0, shiftWeightStrength = 0.3;

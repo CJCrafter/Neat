@@ -3,6 +3,7 @@ package me.cjcrafter.neat.genome;
 import me.cjcrafter.neat.Neat;
 import me.cjcrafter.neat.util.SortedList;
 
+import java.util.Iterator;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Genome {
@@ -14,8 +15,8 @@ public class Genome {
     public Genome(Neat neat) {
         this.neat = neat;
 
-        this.connections = new SortedList<>();
-        this.nodes = new SortedList<>();
+        this.connections = new SortedList<>(Neat.MAX_NODES);
+        this.nodes = new SortedList<>(Neat.MAX_NODES);
     }
 
     public SortedList<ConnectionGene> getConnections() {
@@ -42,7 +43,7 @@ public class Genome {
         Genome g1 = this;
 
         // We flip the genomes to make sure we use as much data as we can.
-        if (g1.connections.get(g1.connections.size() - 1).id < g2.connections.get(g2.connections.size() - 1).id) {
+        if (g1.connections.getTail().id < g2.connections.getTail().id) {
             g1 = g2;
             g2 = this;
         }
@@ -50,23 +51,30 @@ public class Genome {
         int disjoint = 0, similar = 0;
         double weightDiff = 0.0;
 
-        int index1 = 0, index2 = 0;
-        while (index1 < g1.connections.size() && index2 < g2.connections.size()) {
-
-            ConnectionGene node1 = g1.connections.get(index1);
-            ConnectionGene node2 = g2.connections.get(index2);
+        Iterator<ConnectionGene> iterator1 = g1.connections.iterator();
+        Iterator<ConnectionGene> iterator2 = g2.connections.iterator();
+        ConnectionGene node1 = iterator1.next(), node2 = iterator2.next();
+        boolean check1 = true, check2 = true;
+        int index = 0;
+        while (iterator1.hasNext() && iterator2.hasNext()) {
+            if (check1) {
+                node1 = iterator1.next();
+                index++;
+            } else
+                check1 = true;
+            if (check2)
+                node2 = iterator2.next();
+            else
+                check2 = true;
 
             if (node1.getId() == node2.getId()) {
-                index1++;
-                index2++;
-
                 weightDiff += Math.abs(node1.getWeight() - node2.getWeight());
                 similar++;
             } else if (node1.getId() > node2.getId()) {
-                index2++;
+                check1 = false;
                 disjoint++;
             } else {
-                index1++;
+                check2 = false;
                 disjoint++;
             }
         }
@@ -80,7 +88,7 @@ public class Genome {
         }
 
         weightDiff /= similar;
-        int excess = g1.connections.size() - index1;
+        int excess = g1.connections.size() - index;
 
         return neat.getFactor1() * excess / n + neat.getFactor2() * disjoint / n + neat.getFactor3() * weightDiff;
     }

@@ -2,13 +2,12 @@ package me.cjcrafter.neat.util;
 
 import java.util.AbstractSet;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class SortedList<E> extends AbstractSet<E> {
 
-    protected static class Node<E> implements Map.Entry<E, E> {
+    protected static class Node<E> {
 
         E key;
         final int hash;
@@ -19,16 +18,12 @@ public class SortedList<E> extends AbstractSet<E> {
             this.hash = hash;
         }
 
-        @Override public E getKey()          { return key; }
-        @Override public E getValue()        { return key; }
-        @Override public E setValue(E value) { throw new UnsupportedOperationException(); }
+        public E getKey()                    { return key; }
         @Override public String toString()   { return key.toString(); }
-        @Override public int hashCode()      { return Objects.hash(key); }
+        @Override public int hashCode()      { return hash; }
     }
 
-    private static final int INITIAL_CAPACITY = 1 << 4;
     private static final int MAXIMUM_CAPACITY = 1 << 30;
-    private static final float LOAD_FACTOR = 0.75f;
 
     private static int tableSizeFor(int cap) {
         int n = cap - 1;
@@ -40,27 +35,32 @@ public class SortedList<E> extends AbstractSet<E> {
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
-    private static int hash(Object key) {
-        int hash;
-        return key == null ? 0 : (hash = key.hashCode()) ^ (hash >>> 16);
+    private int hash(Object key) {
+        // The key should never be null
+        int hash = key.hashCode();
+        if (hash < 0 || hash >= getThreshold())
+            throw new IllegalHashException("Out of bounds: " + hash);
+
+        return hash;
     }
 
-
-    private Node<E>[] table;
-    private Node<E> head, tail;
+    private final Node<E>[] table;
+    private final int[] indexList;
+    private final int threshold;
     private int size;
-    private int threshold;
+    private Node<E> head, tail;
 
-    public SortedList() {
-    }
+    @SuppressWarnings("unchecked")
+    public SortedList(int capacity) {
 
-    public SortedList(int initialCapacity) {
-        if (initialCapacity < 0)
-            throw new IllegalArgumentException("Illegal initial capacity: " + initialCapacity);
-        else if (initialCapacity > MAXIMUM_CAPACITY)
-            initialCapacity = MAXIMUM_CAPACITY;
+        // Ensure we have a multiple of 2 as a maximum size
+        if ((capacity & (capacity - 1)) != 0) {
+            capacity = tableSizeFor(capacity);
+        }
 
-        this.threshold = tableSizeFor(initialCapacity);
+        this.table = (Node<E>[]) new Node[capacity];
+        this.indexList = new int[capacity];
+        this.threshold = capacity;
     }
 
     // Public operations
@@ -70,8 +70,13 @@ public class SortedList<E> extends AbstractSet<E> {
         return size;
     }
 
-    public int maxHashCode() {
-        return table.length - 1;
+    @Override
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    public int getThreshold() {
+        return threshold;
     }
 
     public E get(E element) {
@@ -108,54 +113,40 @@ public class SortedList<E> extends AbstractSet<E> {
     public boolean add(E element) {
         if (element == null)
             throw new IllegalArgumentException("Element cannot be null");
-        if (table == null || table.length == 0)
-            table = resize();
 
-        Node<E> node;
-        int length = table.length;
         int hash = hash(element);
-        int i = (length - 1) & hash;
+        Node<E> node = table[hash];
 
-        if ((node = table[i]) == null) {
-            node = new Node<>(element, hash);
+        if (node == null) {
+            node = newNode(element, hash);
             linkLast(node);
-            table[i] = node;
-        } else if (node.hash == hash && (node.key.equals(element))) {
-            node.key = element;
+            indexList[size++] = hash;
+            table[hash] = node;
             return true;
         } else {
-            throw new DuplicateHashException();
+            return false;
         }
-
-        if (++size > threshold)
-            resize();
-        return true;
     }
 
     public void insert(E node, E element) {
         Node<E> n = getNode(node);
-        if (n == null) {
+        if (n == null)
             throw new IllegalArgumentException("Unknown node: " + node);
-        }
 
         insertNode(n, element);
     }
 
     @Override
     public boolean remove(Object other) {
-        int hash = other.hashCode();
-        Node<E> node;
-        int length, index;
-        if (table != null && (length = table.length) > 0 && (node = table[index = (length - 1) & hash]) != null) {
-            if (node.hash == hash && node.key.equals(other)) {
-                table[index] = null;
-            }
+        Node<E> node = getNode(other);
+        if (node != null) {
+            table[node.hash] = null;
             size--;
             unlinkNode(node);
-
             return true;
+        } else {
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -168,90 +159,17 @@ public class SortedList<E> extends AbstractSet<E> {
     }
 
     public E getRandomElement() {
-        return null;
-    }
+        if (size == 0)
+            return null;
 
-    @Override
-    public String toString() {
-        return Arrays.toString(table);
+        int index = indexList[ThreadLocalRandom.current().nextInt(size)];
+        return table[index].key;
     }
 
     // Internal operations
 
-    private Node<E>[] resize() {
-        Node<E>[] oldTable = table;
-        int oldCap = (oldTable == null) ? 0 : oldTable.length;
-        int oldThr = threshold;
-        int newCap, newThr = 0;
-
-        if (oldCap > 0) {
-            if (oldCap >= MAXIMUM_CAPACITY) {
-                threshold = Integer.MAX_VALUE;
-                return oldTable;
-            }
-            else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY && oldCap >= INITIAL_CAPACITY) {
-                newThr = oldThr << 1;
-            }
-        } else if (oldThr > 0) {
-            newCap = oldThr;
-        } else {
-            newCap = INITIAL_CAPACITY;
-            newThr = (int) (LOAD_FACTOR * INITIAL_CAPACITY);
-        }
-
-        if (newThr == 0) {
-            float ft = (float) newCap * LOAD_FACTOR;
-            newThr = (newCap < MAXIMUM_CAPACITY && ft < (float) MAXIMUM_CAPACITY ? (int) ft : Integer.MAX_VALUE);
-        }
-
-        @SuppressWarnings("unchecked")
-        Node<E>[] newTab = (Node<E>[]) new Node[newCap];
-        table = newTab;
-        threshold = newThr;
-
-        // Copy the old values to the new table
-        if (oldTable != null) {
-            for (int i = 0; i < oldCap; i++) {
-                Node<E> node = oldTable[i];
-
-                if (node == null) {
-                    continue;
-                }
-                oldTable[i] = null;
-                if (node.after == null) {
-                    newTab[node.hash & (newCap - 1)] = node;
-                    continue;
-                }
-
-                Node<E> loHead = null, loTail = null, hiHead = null, hiTail = null, next;
-                do {
-                    next = node.after;
-                    if ((node.hash & oldCap) == 0) {
-                        if (loTail == null)
-                            loHead = node;
-                        else
-                            loTail.after = node;
-                        loTail = node;
-                    }
-                    else {
-                        if (hiTail == null)
-                            hiHead = node;
-                        else
-                            hiTail.after = node;
-                        hiTail = node;
-                    }
-                } while ((node = next) != null);
-                if (loTail != null) {
-                    loTail.after = null;
-                    newTab[i] = loHead;
-                }
-                if (hiTail != null) {
-                    hiTail.after = null;
-                    newTab[i + oldCap] = hiHead;
-                }
-            }
-        }
-        return newTab;
+    private Node<E> newNode(E element, int hash) {
+        return new Node<>(element, hash);
     }
 
     private void linkLast(Node<E> node) {
@@ -267,36 +185,17 @@ public class SortedList<E> extends AbstractSet<E> {
     }
 
     private Node<E> getNode(Object key) {
-        Node<E> first, node;
-        int length, hash = hash(key);
-
-        if (table != null && (length = table.length) > 0 && (first = table[(length - 1) & hash]) != null) {
-            if (first.hash == hash && first.key.equals(key)) {
-                return first;
-            }
-
-            // This code should never be executed, testing needed
-            if (true) throw new DuplicateHashException();
-            if ((node = first.after) != null) {
-                do {
-                    if (node.hash == hash && node.key.equals(key))
-                        return node;
-                } while ((node = node.after) != null);
-            }
-        }
-        return null;
+        return table[hash(key)];
     }
 
     private void insertNode(Node<E> node, E element) {
         int hash = hash(element);
-        int index = (table.length - 1) & hash;
-
-        Node<E> temp = table[index];
+        Node<E> temp = table[hash];
         Node<E> after = node.after;
 
         if (temp == null) {
-            table[index] = temp = new Node<>(element, hash);
-            size++;
+            table[hash] = temp = newNode(element, hash);
+            indexList[size++] = hash;
 
             temp.before = node;
             node.after = temp;
@@ -307,7 +206,7 @@ public class SortedList<E> extends AbstractSet<E> {
                 tail = temp;
             }
         } else {
-            throw duplicateHash(node, temp);
+            throw new IllegalHashException("Duplicate hash: " + element);
         }
     }
 
@@ -328,10 +227,6 @@ public class SortedList<E> extends AbstractSet<E> {
         int index = (table.length - 1) & node.hash;
         table[index] = null;
         unlinkNode(node);
-    }
-
-    private DuplicateHashException duplicateHash(Node<E> a, Node<E> b) {
-        return new DuplicateHashException("For nodes " + a + "(" + a.hash + ") & " + b + "(" + b.hash + ")");
     }
 
     // Iterators
