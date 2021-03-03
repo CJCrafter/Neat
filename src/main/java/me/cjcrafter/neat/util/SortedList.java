@@ -18,9 +18,9 @@ public class SortedList<E> extends AbstractSet<E> {
             this.hash = hash;
         }
 
-        public E getKey()                    { return key; }
-        @Override public String toString()   { return key.toString(); }
-        @Override public int hashCode()      { return hash; }
+        public E getKey()                  { return key; }
+        @Override public String toString() { return key.toString(); }
+        @Override public int hashCode()    { return hash; }
     }
 
     private static final int MAXIMUM_CAPACITY = 1 << 30;
@@ -35,17 +35,7 @@ public class SortedList<E> extends AbstractSet<E> {
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
-    private int hash(Object key) {
-        // The key should never be null
-        int hash = key.hashCode();
-        if (hash < 0 || hash >= getThreshold())
-            throw new IllegalHashException("Out of bounds: " + hash);
-
-        return hash;
-    }
-
     private final Node<E>[] table;
-    private final int[] indexList;
     private final int threshold;
     private int size;
     private Node<E> head, tail;
@@ -59,7 +49,6 @@ public class SortedList<E> extends AbstractSet<E> {
         }
 
         this.table = (Node<E>[]) new Node[capacity];
-        this.indexList = new int[capacity];
         this.threshold = capacity;
     }
 
@@ -114,13 +103,14 @@ public class SortedList<E> extends AbstractSet<E> {
         if (element == null)
             throw new IllegalArgumentException("Element cannot be null");
 
-        int hash = hash(element);
+        int hash = element.hashCode();
+        validateHash(hash);
         Node<E> node = table[hash];
 
         if (node == null) {
             node = newNode(element, hash);
             linkLast(node);
-            indexList[size++] = hash;
+            size++;
             table[hash] = node;
             return true;
         } else {
@@ -162,14 +152,18 @@ public class SortedList<E> extends AbstractSet<E> {
         if (size == 0)
             return null;
 
-        int index = indexList[ThreadLocalRandom.current().nextInt(size)];
-        return table[index].key;
+        return null;
     }
 
     // Internal operations
 
     private Node<E> newNode(E element, int hash) {
         return new Node<>(element, hash);
+    }
+
+    private void validateHash(int hash) {
+        if (hash < 0 || hash >= threshold)
+            throw new IllegalHashException("Illegal hash: " + hash + ", threshold: " + threshold);
     }
 
     private void linkLast(Node<E> node) {
@@ -185,17 +179,22 @@ public class SortedList<E> extends AbstractSet<E> {
     }
 
     private Node<E> getNode(Object key) {
-        return table[hash(key)];
+        int hash = key.hashCode();
+        if (hash < 0 || hash >= threshold)
+            return null;
+        else
+            return table[hash];
     }
 
     private void insertNode(Node<E> node, E element) {
-        int hash = hash(element);
+        int hash = element.hashCode();
+        validateHash(hash);
         Node<E> temp = table[hash];
         Node<E> after = node.after;
 
         if (temp == null) {
             table[hash] = temp = newNode(element, hash);
-            indexList[size++] = hash;
+            size++;
 
             temp.before = node;
             node.after = temp;
@@ -224,8 +223,8 @@ public class SortedList<E> extends AbstractSet<E> {
     }
 
     private void removeNode(Node<E> node) {
-        int index = (table.length - 1) & node.hash;
-        table[index] = null;
+        table[node.hash] = null;
+        size--;
         unlinkNode(node);
     }
 

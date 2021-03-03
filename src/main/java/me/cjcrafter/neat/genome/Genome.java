@@ -57,6 +57,8 @@ public class Genome {
         boolean check1 = true, check2 = true;
         int index = 0;
         while (iterator1.hasNext() && iterator2.hasNext()) {
+
+            // Determine which lists to go to the next node on
             if (check1) {
                 node1 = iterator1.next();
                 index++;
@@ -67,6 +69,7 @@ public class Genome {
             else
                 check2 = true;
 
+            // Determine the distance between the 2 nodes
             if (node1.getId() == node2.getId()) {
                 weightDiff += Math.abs(node1.getWeight() - node2.getWeight());
                 similar++;
@@ -97,18 +100,29 @@ public class Genome {
     }
 
     public static Genome crossOver(Genome g1, Genome g2) {
+
+        // We flip the genomes to make sure we use as much data as we can.
+        if (g1.connections.getTail().id < g2.connections.getTail().id) {
+            Genome temp = g1;
+            g1 = g2;
+            g2 = temp;
+        }
+
         Genome child = g1.neat.newGenome();
 
-        int index1 = 0, index2 = 0;
-        while (index1 < g1.connections.size() && index2 < g2.connections.size()) {
+        Iterator<ConnectionGene> iterator1 = g1.connections.iterator();
+        Iterator<ConnectionGene> iterator2 = g2.connections.iterator();
+        ConnectionGene node1 = iterator1.next(), node2 = iterator2.next();
+        boolean check1 = true, check2 = true;
+        while (iterator1.hasNext() && iterator2.hasNext()) {
 
-            ConnectionGene node1 = g1.connections.get(index1);
-            ConnectionGene node2 = g2.connections.get(index2);
+            // Determine which lists to go to the next node on
+            if (check1) node1 = iterator1.next();
+            else        check1 = true;
+            if (check2) node2 = iterator2.next();
+            else        check2 = true;
 
             if (node1.getId() == node2.getId()) {
-                index1++;
-                index2++;
-
                 if (ThreadLocalRandom.current().nextBoolean()) {
                     child.add(new ConnectionGene(node1));
                 } else {
@@ -116,14 +130,17 @@ public class Genome {
                 }
 
             } else if (node1.getId() > node2.getId()) {
-                index2++;
+                check1 = false;
             } else {
                 child.add(new ConnectionGene(node1));
-                index1++;
+                check2 = false;
             }
         }
 
-        g1.connections.forEach(connection -> child.add(new ConnectionGene(connection)));
+        // Copy the rest of the connections over
+        while (iterator1.hasNext()) {
+            child.add(new ConnectionGene(iterator1.next()));
+        }
 
         child.connections.forEach(connection -> {
             child.nodes.add(connection.getFrom());
