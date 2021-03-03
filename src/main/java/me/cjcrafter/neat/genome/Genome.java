@@ -3,6 +3,7 @@ package me.cjcrafter.neat.genome;
 import me.cjcrafter.neat.Neat;
 import me.cjcrafter.neat.util.SortedList;
 
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -17,6 +18,9 @@ public class Genome {
 
         this.connections = new SortedList<>(Neat.MAX_NODES);
         this.nodes = new SortedList<>(Neat.MAX_NODES);
+
+        connections.setComparator(Comparator.comparingInt(Gene::getId));
+        nodes.setComparator(Comparator.comparingInt(Gene::getId));
     }
 
     public SortedList<ConnectionGene> getConnections() {

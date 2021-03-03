@@ -2,6 +2,7 @@ package me.cjcrafter.neat.util;
 
 import java.util.AbstractSet;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -39,6 +40,7 @@ public class SortedList<E> extends AbstractSet<E> {
     private final int threshold;
     private int size;
     private Node<E> head, tail;
+    private Comparator<E> comparator;
 
     @SuppressWarnings("unchecked")
     public SortedList(int capacity) {
@@ -77,12 +79,59 @@ public class SortedList<E> extends AbstractSet<E> {
         if (index < 0 || index >= size)
             throw new IndexOutOfBoundsException("Illegal index: " + index);
 
-        Node<E> node = head;
-        for (int i = 0; i < index; i++) {
-            node = node.after;
+        int half = size / 2;
+
+        // If the index is in the back half of the collection, then iterate
+        // from the tail end. Otherwise iterate from the head.
+        Node<E> node;
+        if (index > half) {
+            index = size - index - 1;
+            node = tail;
+
+            while (index-- > 0) {
+                node = node.before;
+            }
+        } else {
+            node = head;
+
+            while (index-- > 0) {
+                node = node.after;
+            }
         }
 
         return node.key;
+    }
+
+    public boolean insertSorted(E element) {
+        if (comparator == null)
+            throw new IllegalStateException("No comparator has been set");
+
+        if (size == 0) {
+            head = tail = newNode(element, element.hashCode());
+            size++;
+            return true;
+        } else if (this.contains(element)) {
+            return false;
+        }
+
+        Node<E> node = head;
+        int compare;
+        do {
+            compare = comparator.compare(node.key, element);
+        } while (compare < 0 && (node = node.after) != null);
+
+        if (node == null) {
+            tail.after = newNode(element, element.hashCode());
+            size++;
+        } else if (node.before == null) {
+            head = newNode(element, element.hashCode());
+            head.after = node;
+            size++;
+        } else {
+            insertNode(node.before, element);
+        }
+
+        return true;
     }
 
     public E getHead() {
@@ -141,7 +190,7 @@ public class SortedList<E> extends AbstractSet<E> {
 
     @Override
     public void clear() {
-        if (table != null && size > 0) {
+        if (size > 0) {
             size = 0;
             Arrays.fill(table, null);
             head = tail = null;
@@ -152,7 +201,11 @@ public class SortedList<E> extends AbstractSet<E> {
         if (size == 0)
             return null;
 
-        return null;
+        return get(ThreadLocalRandom.current().nextInt(size));
+    }
+
+    public void setComparator(Comparator<E> comparator) {
+        this.comparator = comparator;
     }
 
     // Internal operations

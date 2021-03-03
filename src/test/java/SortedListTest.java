@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Comparator;
 
 class SortedListTest {
 
@@ -15,6 +16,9 @@ class SortedListTest {
     static void fillLists() {
         Collections.addAll(list_1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         Collections.addAll(list_2, 1, 2, 4, 8, 16, 31);
+
+        list_1.setComparator(Comparator.comparingInt(Integer::intValue));
+        list_2.setComparator(Comparator.comparingInt(Integer::intValue));
 
         System.out.println(list_1);
         System.out.println(list_2);
@@ -42,6 +46,10 @@ class SortedListTest {
         testInsert(list_1, 0, 11, false);
         testInsert(list_1, 4, 12, false);
         testInsert(list_1, 9, 13, true);
+
+        list_2.insertSorted(7);
+        System.out.println(list_2);
+        Assertions.assertEquals(list_2.get(3), 7);
     }
 
     @Test
@@ -59,6 +67,23 @@ class SortedListTest {
         Assertions.assertFalse(() -> list_2.contains(-32));
         Assertions.assertFalse(() -> list_2.contains(1023));
         Assertions.assertFalse(() -> list_2.contains(47));
+    }
+
+    @Test
+    public void testGet() {
+        Assertions.assertEquals(list_1.get(0), 0);
+        Assertions.assertEquals(list_1.get(2), 2);
+        Assertions.assertEquals(list_1.get(4), 4);
+        Assertions.assertEquals(list_1.get(5), 5);
+        Assertions.assertEquals(list_1.get(6), 6);
+        Assertions.assertEquals(list_1.get(9), 9);
+
+        Assertions.assertEquals(list_2.get(0), 1);
+        Assertions.assertEquals(list_2.get(1), 2);
+        Assertions.assertEquals(list_2.get(2), 4);
+        Assertions.assertEquals(list_2.get(3), 8);
+        Assertions.assertEquals(list_2.get(5), 31);
+
     }
 
     private <E> void testInsert(SortedList<E> list, int index, E element, boolean expectError) {
