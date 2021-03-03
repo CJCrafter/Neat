@@ -28,10 +28,12 @@ public class GenePanel extends JPanel {
         g.setColor(Color.black);
         g.fillRect(0, 0, 10000, 10000);
 
+        if (genome == null)
+            return;
+
         for (ConnectionGene c : genome.getConnections()) {
             paintConnection(c, (Graphics2D) g);
         }
-
 
         for (NodeGene n : genome.getNodes()) {
             paintNode(n, (Graphics2D) g);

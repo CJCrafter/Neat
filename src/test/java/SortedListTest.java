@@ -47,8 +47,11 @@ class SortedListTest {
         testInsert(list_1, 4, 12, false);
         testInsert(list_1, 9, 13, true);
 
+        list_1.insertSorted(10);
+        System.out.println(list_1);
+        Assertions.assertEquals(list_1.get(10), 10);
+
         list_2.insertSorted(7);
-        System.out.println(list_2);
         Assertions.assertEquals(list_2.get(3), 7);
     }
 
@@ -58,8 +61,8 @@ class SortedListTest {
         Assertions.assertTrue(() -> list_1.contains(3));
         Assertions.assertTrue(() -> list_1.contains(9));
         Assertions.assertTrue(() -> list_2.contains(1));
-        Assertions.assertTrue(() -> list_1.contains(2));
-        Assertions.assertTrue(() -> list_1.contains(31));
+        Assertions.assertTrue(() -> list_2.contains(2));
+        Assertions.assertTrue(() -> list_2.contains(31));
 
         Assertions.assertFalse(() -> list_1.contains(-9));
         Assertions.assertFalse(() -> list_1.contains(1000));

@@ -16,7 +16,7 @@ public class Genome {
     public Genome(Neat neat) {
         this.neat = neat;
 
-        this.connections = new SortedList<>(Neat.MAX_NODES);
+        this.connections = new SortedList<>(1 << (Neat.MAX_NODE_BITS << 1));
         this.nodes = new SortedList<>(Neat.MAX_NODES);
 
         connections.setComparator(Comparator.comparingInt(Gene::getId));
@@ -152,5 +152,14 @@ public class Genome {
         });
 
         return child;
+    }
+
+    @Override
+    public String toString() {
+        return "Genome{" +
+                "\n\tconnections=" + connections +
+                ", \n\tnodes=" + nodes +
+                ", \n\tneat=" + neat +
+                '}';
     }
 }

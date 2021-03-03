@@ -1,5 +1,6 @@
 package me.cjcrafter.neat.genome;
 
+import me.cjcrafter.neat.Neat;
 import me.cjcrafter.neat.util.SortedList;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -15,8 +16,7 @@ public enum Mutation {
                         * genome.getNeat().getRandomWeightStrength());
             }
         }
-    },
-    WEIGHT_SHIFT {
+    }, WEIGHT_SHIFT {
         @Override
         public void mutate(Genome genome) {
             ConnectionGene connection = genome.getConnections().getRandomElement();
@@ -33,8 +33,7 @@ public enum Mutation {
                 connection.setEnabled(!connection.isEnabled());
             }
         }
-    },
-    ADD_LINK {
+    }, ADD_LINK {
         @Override
         public void mutate(Genome genome) {
 
@@ -56,14 +55,45 @@ public enum Mutation {
                     connection = new ConnectionGene(b, a);
                 }
 
-                genome.getConnections().contains(connection);
+                // If that connection already exists, try again
+                if (genome.getConnections().contains(connection)) {
+                    continue;
+                }
+
+                // Pull the connection from the neat pool of connections, or
+                // add it if it does not yet exist
+                connection = genome.getNeat().newConnectionGene(connection.getFrom(), connection.getTo());
+                connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1) * genome.getNeat().getRandomWeightStrength());
+
+                genome.getConnections().insertSorted(connection);
+                break;
             }
         }
-    },
-    ADD_NODE {
+    }, ADD_NODE {
         @Override
         public void mutate(Genome genome) {
+            ConnectionGene connection = genome.getConnections().getRandomElement();
+            if (connection != null) {
+                NodeGene from   = connection.getFrom();
+                NodeGene to     = connection.getTo();
+                NodeGene middle = genome.getNeat().newNode();
 
+                middle.setX((from.getX() + to.getX()) / 2);
+                middle.setY((from.getY() + to.getY()) / 2 + ThreadLocalRandom.current().nextDouble(-0.1, 0.1));
+
+                ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
+                ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);
+
+                a.setWeight(1);
+                b.setWeight(connection.getWeight());
+                b.setEnabled(connection.isEnabled());
+
+                genome.getConnections().remove(connection);
+                genome.getConnections().add(a);
+                genome.getConnections().add(b);
+
+                genome.getNodes().add(middle);
+            }
         }
     };
 

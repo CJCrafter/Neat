@@ -114,6 +114,9 @@ public class SortedList<E> extends AbstractSet<E> {
             return false;
         }
 
+        int hash = element.hashCode();
+        validateHash(hash);
+
         Node<E> node = head;
         int compare;
         do {
@@ -121,10 +124,10 @@ public class SortedList<E> extends AbstractSet<E> {
         } while (compare < 0 && (node = node.after) != null);
 
         if (node == null) {
-            tail.after = newNode(element, element.hashCode());
+            tail = table[hash] = tail.after = newNode(element, element.hashCode());
             size++;
         } else if (node.before == null) {
-            head = newNode(element, element.hashCode());
+            head = table[hash] = newNode(element, element.hashCode());
             head.after = node;
             size++;
         } else {

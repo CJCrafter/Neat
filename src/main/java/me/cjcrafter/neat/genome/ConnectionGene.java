@@ -1,8 +1,8 @@
 package me.cjcrafter.neat.genome;
 
-import java.util.Objects;
+import me.cjcrafter.neat.Neat;
 
-import static me.cjcrafter.neat.Neat.MAX_NODES;
+import java.util.Objects;
 
 public class ConnectionGene extends Gene implements Cloneable {
 
@@ -72,6 +72,6 @@ public class ConnectionGene extends Gene implements Cloneable {
 
     @Override
     public int hashCode() {
-        return from.getId() * MAX_NODES + to.getId();
+        return from.getId() << (Neat.MAX_NODE_BITS) | to.getId();
     }
 }
