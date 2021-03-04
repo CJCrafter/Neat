@@ -10,7 +10,7 @@ public class SortedList<E> extends AbstractSet<E> {
 
     protected static class Node<E> {
 
-        E key;
+        final E key;
         final int hash;
         Node<E> before, after;
 
@@ -52,6 +52,67 @@ public class SortedList<E> extends AbstractSet<E> {
 
         this.table = (Node<E>[]) new Node[capacity];
         this.threshold = capacity;
+    }
+
+    @SuppressWarnings({"unchecked", "CopyConstructorMissesField"})
+    public SortedList(SortedList<E> other) {
+        this.table = (Node<E>[]) new Node[other.size];
+        this.threshold = other.threshold;
+        this.comparator = other.comparator;
+
+        this.addAll(other);
+    }
+
+    // This method tests if some operation failed internally
+    public void validate() {
+        for (E e : this) {
+            if (!this.contains(e)) {
+                System.out.println(" !!! LinkedList contains element, but table does not: " + e);
+            }
+        }
+        for (Node<E> node : table) {
+            if (node == null) continue;
+            boolean contains = false;
+
+            for (E e : this) {
+                if (node.hash == e.hashCode()) {
+                    contains = true;
+                    break;
+                }
+            }
+
+            if (!contains)
+                System.out.println(" !!! table contains element, but LinkedList does not: " + node.key);
+        }
+    }
+
+    public void checkLinks() {
+        if (isEmpty())
+            return;
+
+        Node<E> current, before, after;
+        current = head;
+        before = null;
+        after = head.after;
+
+        while (true) {
+
+            if (current.before != before) {
+                System.out.println(" !!! Missing before link for " + current);
+            }
+
+            if (after == null) {
+                break;
+            }
+
+            before = current;
+            current = after;
+            after = after.after;
+        }
+
+        if (current != tail) {
+            System.out.println(" !!! Tail node is unlinked. " + current);
+        }
     }
 
     // Public operations
@@ -108,6 +169,7 @@ public class SortedList<E> extends AbstractSet<E> {
 
         if (size == 0) {
             head = tail = newNode(element, element.hashCode());
+            table[head.hash] = head;
             size++;
             return true;
         } else if (this.contains(element)) {
@@ -123,12 +185,15 @@ public class SortedList<E> extends AbstractSet<E> {
             compare = comparator.compare(node.key, element);
         } while (compare < 0 && (node = node.after) != null);
 
+        Node<E> base;
+
+        // Check if the element is on the tail first, then check if it is on
+        // the head
         if (node == null) {
-            tail = table[hash] = tail.after = newNode(element, element.hashCode());
+            table[hash] = tail = tail.after = newNode(element, hash);
             size++;
         } else if (node.before == null) {
-            head = table[hash] = newNode(element, element.hashCode());
-            head.after = node;
+            table[hash] = head = head.before = newNode(element, hash);
             size++;
         } else {
             insertNode(node.before, element);
@@ -182,9 +247,7 @@ public class SortedList<E> extends AbstractSet<E> {
     public boolean remove(Object other) {
         Node<E> node = getNode(other);
         if (node != null) {
-            table[node.hash] = null;
-            size--;
-            unlinkNode(node);
+            removeNode(node);
             return true;
         } else {
             return false;

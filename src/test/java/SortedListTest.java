@@ -86,7 +86,28 @@ class SortedListTest {
         Assertions.assertEquals(list_2.get(2), 4);
         Assertions.assertEquals(list_2.get(3), 8);
         Assertions.assertEquals(list_2.get(5), 31);
+    }
 
+    @Test
+    public void remove() {
+        SortedList<Integer> list = new SortedList<>(list_1);
+        Assertions.assertEquals(10, list.size());
+        System.out.println(list);
+
+        list.remove(0);
+        Assertions.assertFalse(() -> list.contains(0));
+        list.remove(1);
+        Assertions.assertFalse(() -> list.contains(1));
+        list.remove(5);
+        Assertions.assertFalse(() -> list.contains(5));
+        list.remove(9);
+        Assertions.assertFalse(() -> list.contains(9));
+
+        System.out.println(list);
+
+        Assertions.assertEquals(2, list.getHead());
+        Assertions.assertEquals(8, list.getTail());
+        Assertions.assertEquals(6, list.size());
     }
 
     private <E> void testInsert(SortedList<E> list, int index, E element, boolean expectError) {
