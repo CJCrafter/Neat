@@ -167,6 +167,8 @@ public class SortedList<E> extends AbstractSet<E> {
         if (comparator == null)
             throw new IllegalStateException("No comparator has been set");
 
+        int hash = element.hashCode();
+        validateHash(hash);
         if (size == 0) {
             head = tail = newNode(element, element.hashCode());
             table[head.hash] = head;
@@ -176,24 +178,23 @@ public class SortedList<E> extends AbstractSet<E> {
             return false;
         }
 
-        int hash = element.hashCode();
-        validateHash(hash);
-
         Node<E> node = head;
         int compare;
         do {
             compare = comparator.compare(node.key, element);
         } while (compare < 0 && (node = node.after) != null);
 
-        Node<E> base;
-
         // Check if the element is on the tail first, then check if it is on
         // the head
         if (node == null) {
-            table[hash] = tail = tail.after = newNode(element, hash);
+            Node<E> insert = newNode(element, hash);
+            insert.before = tail;
+            table[hash] = tail = tail.after = insert;
             size++;
         } else if (node.before == null) {
-            table[hash] = head = head.before = newNode(element, hash);
+            Node<E> insert = newNode(element, hash);
+            insert.after = head;
+            table[hash] = head = head.before = insert;
             size++;
         } else {
             insertNode(node.before, element);

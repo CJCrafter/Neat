@@ -64,9 +64,7 @@ public enum Mutation {
                 connection = genome.getNeat().newConnectionGene(connection.getFrom(), connection.getTo());
                 connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1) * genome.getNeat().getRandomWeightStrength());
 
-                genome.getConnections().validate();
                 genome.getConnections().insertSorted(connection);
-                genome.getConnections().validate();
                 break;
             }
         }
@@ -80,29 +78,19 @@ public enum Mutation {
                 NodeGene to     = connection.getTo();
                 NodeGene middle = genome.getNeat().newNode();
 
-                System.out.println("\n---\n");
-                System.out.println("Found an existing connection from " + from + " to " + to);
-
                 middle.setX((from.getX() + to.getX()) / 2);
                 middle.setY((from.getY() + to.getY()) / 2 + ThreadLocalRandom.current().nextDouble(-0.1, 0.1));
 
                 ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
                 ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);
-                System.out.println("Connections: " + a + " -> " + b);
 
                 a.setWeight(1);
                 b.setWeight(connection.getWeight());
                 b.setEnabled(connection.isEnabled());
 
-                System.out.println("BEFORE: " + genome.getConnections());
-                genome.getConnections().validate();
-                genome.getConnections().checkLinks();
                 genome.getConnections().remove(connection);
-                genome.getConnections().validate();
                 genome.getConnections().add(a);
                 genome.getConnections().add(b);
-                System.out.println("AFTER: " + genome.getConnections());
-                System.out.println("Removed? " + connection);
 
                 genome.getNodes().add(middle);
             }
@@ -123,7 +111,5 @@ public enum Mutation {
         name = builder.substring(0, builder.length() - 1);
     }
 
-    // todo abstract
     public abstract void mutate(Genome genome);
-
 }
