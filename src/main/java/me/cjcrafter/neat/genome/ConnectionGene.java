@@ -4,7 +4,7 @@ import me.cjcrafter.neat.Neat;
 
 import java.util.Objects;
 
-public class ConnectionGene extends Gene implements Cloneable {
+public class ConnectionGene extends Gene {
 
     private NodeGene from;
     private NodeGene to;

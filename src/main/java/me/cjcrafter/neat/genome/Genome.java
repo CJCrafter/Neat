@@ -1,6 +1,7 @@
 package me.cjcrafter.neat.genome;
 
 import me.cjcrafter.neat.Neat;
+import me.cjcrafter.neat.calculator.Calculator;
 import me.cjcrafter.neat.util.SortedList;
 
 import java.util.Comparator;
@@ -12,6 +13,8 @@ public class Genome {
     private final SortedList<ConnectionGene> connections;
     private final SortedList<NodeGene> nodes;
     private final Neat neat;
+
+    private Calculator calculator;
 
     public Genome(Neat neat) {
         this.neat = neat;
@@ -101,7 +104,12 @@ public class Genome {
     }
 
     public void mutate(Mutation mutation) {
+        calculator = null;
         mutation.mutate(this);
+    }
+
+    public Calculator getCalculator() {
+        return calculator == null ? (calculator = new Calculator(this)) : calculator;
     }
 
     public static Genome crossOver(Genome g1, Genome g2) {

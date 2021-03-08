@@ -98,16 +98,18 @@ public enum Mutation {
     }, MUTATE(0.0) {
         @Override
         public void mutate(Genome genome) {
-            if (ADD_LINK.chance > ThreadLocalRandom.current().nextDouble())
-                ADD_LINK.mutate(genome);
-            if (ADD_NODE.chance > ThreadLocalRandom.current().nextDouble())
-                ADD_NODE.mutate(genome);
-            if (RANDOM_WEIGHT.chance > ThreadLocalRandom.current().nextDouble())
-                RANDOM_WEIGHT.mutate(genome);
-            if (WEIGHT_SHIFT.chance > ThreadLocalRandom.current().nextDouble())
-                WEIGHT_SHIFT.mutate(genome);
-            if (TOGGLE.chance > ThreadLocalRandom.current().nextDouble())
-                TOGGLE.mutate(genome);
+            for (int i = 0; i < 10; i++) {
+                if (ADD_LINK.chance > ThreadLocalRandom.current().nextDouble())
+                    ADD_LINK.mutate(genome);
+                if (ADD_NODE.chance > ThreadLocalRandom.current().nextDouble())
+                    ADD_NODE.mutate(genome);
+                if (RANDOM_WEIGHT.chance > ThreadLocalRandom.current().nextDouble())
+                    RANDOM_WEIGHT.mutate(genome);
+                if (WEIGHT_SHIFT.chance > ThreadLocalRandom.current().nextDouble())
+                    WEIGHT_SHIFT.mutate(genome);
+                if (TOGGLE.chance > ThreadLocalRandom.current().nextDouble())
+                    TOGGLE.mutate(genome);
+            }
         }
     };
 
