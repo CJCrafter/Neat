@@ -6,7 +6,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public enum Mutation {
 
-    RANDOM_WEIGHT {
+    RANDOM_WEIGHT(0.4) {
         @Override
         public void mutate(Genome genome) {
             ConnectionGene connection = genome.getConnections().getRandomElement();
@@ -15,7 +15,7 @@ public enum Mutation {
                         * genome.getNeat().getRandomWeightStrength());
             }
         }
-    }, WEIGHT_SHIFT {
+    }, WEIGHT_SHIFT(0.4) {
         @Override
         public void mutate(Genome genome) {
             ConnectionGene connection = genome.getConnections().getRandomElement();
@@ -24,7 +24,7 @@ public enum Mutation {
                         * genome.getNeat().getShiftWeightStrength());
             }
         }
-    }, TOGGLE {
+    }, TOGGLE(0.4) {
         @Override
         public void mutate(Genome genome) {
             ConnectionGene connection = genome.getConnections().getRandomElement();
@@ -32,7 +32,7 @@ public enum Mutation {
                 connection.setEnabled(!connection.isEnabled());
             }
         }
-    }, ADD_LINK {
+    }, ADD_LINK(0.4) {
         @Override
         public void mutate(Genome genome) {
 
@@ -68,7 +68,7 @@ public enum Mutation {
                 break;
             }
         }
-    }, ADD_NODE {
+    }, ADD_NODE(0.4) {
         @Override
         public void mutate(Genome genome) {
             ConnectionGene connection = genome.getConnections().getRandomElement();
@@ -95,11 +95,26 @@ public enum Mutation {
                 genome.getNodes().add(middle);
             }
         }
+    }, MUTATE(0.0) {
+        @Override
+        public void mutate(Genome genome) {
+            if (ADD_LINK.chance > ThreadLocalRandom.current().nextDouble())
+                ADD_LINK.mutate(genome);
+            if (ADD_NODE.chance > ThreadLocalRandom.current().nextDouble())
+                ADD_NODE.mutate(genome);
+            if (RANDOM_WEIGHT.chance > ThreadLocalRandom.current().nextDouble())
+                RANDOM_WEIGHT.mutate(genome);
+            if (WEIGHT_SHIFT.chance > ThreadLocalRandom.current().nextDouble())
+                WEIGHT_SHIFT.mutate(genome);
+            if (TOGGLE.chance > ThreadLocalRandom.current().nextDouble())
+                TOGGLE.mutate(genome);
+        }
     };
 
     public final String name;
+    public final double chance;
 
-    Mutation() {
+    Mutation(double chance) {
         String[] split = name().toLowerCase().split("_");
 
         StringBuilder builder = new StringBuilder();
@@ -108,7 +123,8 @@ public enum Mutation {
             builder.append(s.substring(1));
             builder.append(" ");
         }
-        name = builder.substring(0, builder.length() - 1);
+        this.name = builder.substring(0, builder.length() - 1);
+        this.chance = chance;
     }
 
     public abstract void mutate(Genome genome);

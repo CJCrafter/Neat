@@ -32,7 +32,7 @@ public class Frame extends JFrame {
         buttonHolder.setLayout(new GridLayout(1, 6));
 
         for (Mutation mutation : Mutation.values()) {
-            buttonHolder.add(getButton(mutation.name, mutation::mutate));
+            buttonHolder.add(getButton(mutation.name, genome1 -> genome1.mutate(mutation)));
         }
 
         this.add(buttonHolder, BorderLayout.NORTH);

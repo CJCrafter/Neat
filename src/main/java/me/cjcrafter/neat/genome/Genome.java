@@ -100,7 +100,8 @@ public class Genome {
         return neat.getFactor1() * excess / n + neat.getFactor2() * disjoint / n + neat.getFactor3() * weightDiff;
     }
 
-    public void mutate() {
+    public void mutate(Mutation mutation) {
+        mutation.mutate(this);
     }
 
     public static Genome crossOver(Genome g1, Genome g2) {

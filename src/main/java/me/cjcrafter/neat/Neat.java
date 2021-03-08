@@ -25,12 +25,10 @@ public class Neat {
     private int clients;
 
     public Neat(int inputNodes, int outputNodes, int clients) {
-        reset(inputNodes, outputNodes, clients);
+        init(inputNodes, outputNodes, clients);
     }
 
-    // TODO This looks like a violation of immutabnle objects to me. See the
-    // TODO reset usage later on.
-    public void reset(int inputNodes, int outputNodes, int clients) {
+    public void init(int inputNodes, int outputNodes, int clients) {
         this.connectionCache = new HashMap<>();
         this.nodeCache = new ArrayList<>();
 
@@ -55,6 +53,14 @@ public class Neat {
             node.setX(0.9);
             node.setY((i + 1.0) / (outputNodes + 1.0));
         }
+    }
+
+    public int getInputNodes() {
+        return inputNodes;
+    }
+
+    public int getOutputNodes() {
+        return outputNodes;
     }
 
     public double getFactor1() {
