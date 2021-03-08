@@ -4,9 +4,10 @@ import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class SortedList<E> extends AbstractSet<E> {
+public class SortedList<E> extends AbstractSet<E> implements Set<E> {
 
     protected static class Node<E> {
 
@@ -269,6 +270,10 @@ public class SortedList<E> extends AbstractSet<E> {
             return null;
 
         return get(ThreadLocalRandom.current().nextInt(size));
+    }
+
+    public void sort() {
+
     }
 
     public void setComparator(Comparator<E> comparator) {

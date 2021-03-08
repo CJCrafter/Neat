@@ -6,7 +6,6 @@ import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.NodeGene;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +45,7 @@ public class Calculator {
         }
 
         // todo Check if this sorting is needed, the objects may already be sorted
-        hidden.sort(Comparator.naturalOrder());
+        //hidden.sort(Comparator.naturalOrder());
 
         for (ConnectionGene gene : genome.getConnections()) {
             Connection connection = new Connection(temp.get(gene.getFrom()), temp.get(gene.getTo()));

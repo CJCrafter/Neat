@@ -49,8 +49,11 @@ public class Genome {
     public double distance(Genome g2) {
         Genome g1 = this;
 
+        int highest1 = g1.connections.isEmpty() ? 0 : g1.connections.getTail().id;
+        int highest2 = g2.connections.isEmpty() ? 0 : g2.connections.getTail().id;
+
         // We flip the genomes to make sure we use as much data as we can.
-        if (g1.connections.getTail().id < g2.connections.getTail().id) {
+        if (highest1 < highest2) {
             g1 = g2;
             g2 = this;
         }

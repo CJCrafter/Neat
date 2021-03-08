@@ -14,6 +14,7 @@ public class Neat {
     public static final int MAX_NODE_BITS = 8;
     public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
+    private double speciesDistance = 4.0;
     private double factor1 = 1.0, factor2 = 1.0, factor3 = 1.0;
     private double randomWeightStrength = 1.0, shiftWeightStrength = 0.3;
 
@@ -61,6 +62,10 @@ public class Neat {
 
     public int getOutputNodes() {
         return outputNodes;
+    }
+
+    public double getSpeciesDistance() {
+        return speciesDistance;
     }
 
     public double getFactor1() {
