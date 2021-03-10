@@ -15,15 +15,18 @@ public class Neat {
     public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
     private double speciesDistance = 4.0;
+    private double survivalChance = 0.80;
     private double factor1 = 1.0, factor2 = 1.0, factor3 = 1.0;
     private double randomWeightStrength = 1.0, shiftWeightStrength = 0.3;
 
     private Map<ConnectionGene, ConnectionGene> connectionCache;
     private List<NodeGene> nodeCache;
+    private List<Client> clients;
+    private List<Species> species;
 
     private int inputNodes;
     private int outputNodes;
-    private int clients;
+    private int maxClients;
 
     public Neat(int inputNodes, int outputNodes, int clients) {
         init(inputNodes, outputNodes, clients);
@@ -32,10 +35,11 @@ public class Neat {
     public void init(int inputNodes, int outputNodes, int clients) {
         this.connectionCache = new HashMap<>();
         this.nodeCache = new ArrayList<>();
+        this.clients = new ArrayList<>(clients);
 
         this.inputNodes = inputNodes;
         this.outputNodes = outputNodes;
-        this.clients = clients;
+        this.maxClients = clients;
 
         // Sets the input node layer. The number of input nodes will not change
         // unless the reset method is called. The input nodes are always
@@ -53,6 +57,12 @@ public class Neat {
             NodeGene node = newNode();
             node.setX(0.9);
             node.setY((i + 1.0) / (outputNodes + 1.0));
+        }
+
+        for (int i = 0; i < maxClients; i++) {
+            Client client = new Client();
+            client.setGenome(newGenome());
+            this.clients.add(client);
         }
     }
 
@@ -78,6 +88,14 @@ public class Neat {
 
     public double getFactor3() {
         return factor3;
+    }
+
+    public double getRandomWeightStrength() {
+        return randomWeightStrength;
+    }
+
+    public double getShiftWeightStrength() {
+        return shiftWeightStrength;
     }
 
     public Genome newGenome() {
@@ -124,11 +142,31 @@ public class Neat {
         }
     }
 
-    public double getRandomWeightStrength() {
-        return randomWeightStrength;
-    }
+    public void evolve() {
 
-    public double getShiftWeightStrength() {
-        return shiftWeightStrength;
+        // We need to reset all of the species, and resort all of the clients
+        // into their species. If no such species exists, we create new ones.
+        for (Client client : clients) {
+            if (client.getSpecies() == null) {
+                for (Species species : species) {
+                    species.reset();
+
+                    if (species.put(client)) {
+                        break;
+                    }
+                }
+
+                // If there are no matching species, create a new one.
+                if (client.getSpecies() == null) {
+                    species.add(new Species(client));
+                }
+            }
+        }
+
+        species.forEach(Species::evaluate);
+
+        // Kill of the lowest members of the species so the best of the species
+        // get to reproduce.
+
     }
 }

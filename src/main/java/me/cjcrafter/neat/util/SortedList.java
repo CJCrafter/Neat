@@ -3,409 +3,552 @@ package me.cjcrafter.neat.util;
 import java.util.AbstractSet;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class SortedList<E> extends AbstractSet<E> implements Set<E> {
+public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
 
-    protected static class Node<E> {
+    private static class Node<E> {
 
-        final E key;
-        final int hash;
-        Node<E> before, after;
-
-        Node(E key, int hash) {
-            this.key = key;
+        Node(E item, int hash) {
+            this.item = item;
             this.hash = hash;
         }
 
-        public E getKey()                  { return key; }
-        @Override public String toString() { return key.toString(); }
-        @Override public int hashCode()    { return hash; }
+        Node(Node<E> before, E item, int hash, Node<E> after) {
+            this.before = before;
+            this.item = item;
+            this.hash = hash;
+            this.after = after;
+        }
+
+        E item;
+        int hash;
+        Node<E> before, after;
+
+        public E get()                    { return item; }
+        public void set(E item, int hash) { this.item = item; this.hash = hash; }
+        public int hash()                 { return hash; }
+        public String toString()          { return item.toString(); }
     }
 
-    private static final int MAXIMUM_CAPACITY = 1 << 30;
-
-    private static int tableSizeFor(int cap) {
-        int n = cap - 1;
-        n |= n >>> 1;
-        n |= n >>> 2;
-        n |= n >>> 4;
-        n |= n >>> 8;
-        n |= n >>> 16;
-        return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
-    }
-
-    private final Node<E>[] table;
     private final int threshold;
-    private int size;
+    private final Node<E>[] table;
     private Node<E> head, tail;
+    private int size;
+
     private Comparator<E> comparator;
 
     @SuppressWarnings("unchecked")
-    public SortedList(int capacity) {
-
-        // Ensure we have a multiple of 2 as a maximum size
-        if ((capacity & (capacity - 1)) != 0) {
-            capacity = tableSizeFor(capacity);
-        }
-
-        this.table = (Node<E>[]) new Node[capacity];
-        this.threshold = capacity;
+    public SortedList(int threshold) {
+        this.threshold = threshold;
+        this.table = (Node<E>[]) new Node[threshold];
     }
 
     @SuppressWarnings({"unchecked", "CopyConstructorMissesField"})
     public SortedList(SortedList<E> other) {
-        this.table = (Node<E>[]) new Node[other.size];
         this.threshold = other.threshold;
+        this.table = (Node<E>[]) new Node[threshold];
         this.comparator = other.comparator;
 
         this.addAll(other);
     }
 
-    // This method tests if some operation failed internally
-    public void validate() {
-        for (E e : this) {
-            if (!this.contains(e)) {
-                System.out.println(" !!! LinkedList contains element, but table does not: " + e);
-            }
-        }
-        for (Node<E> node : table) {
-            if (node == null) continue;
-            boolean contains = false;
+    // Internal mapping methods
 
-            for (E e : this) {
-                if (node.hash == e.hashCode()) {
-                    contains = true;
-                    break;
-                }
-            }
-
-            if (!contains)
-                System.out.println(" !!! table contains element, but LinkedList does not: " + node.key);
-        }
+    private int hash(Object item) {
+        return hash(item, false);
     }
 
-    public void checkLinks() {
-        if (isEmpty())
-            return;
+    protected int hash(Object item, boolean suppress) {
+        int hash = item.hashCode();
 
-        Node<E> current, before, after;
-        current = head;
-        before = null;
-        after = head.after;
+        if (!suppress && (hash < 0 || hash >= threshold))
+            throw new IllegalHashException();
 
-        while (true) {
-
-            if (current.before != before) {
-                System.out.println(" !!! Missing before link for " + current);
-            }
-
-            if (after == null) {
-                break;
-            }
-
-            before = current;
-            current = after;
-            after = after.after;
-        }
-
-        if (current != tail) {
-            System.out.println(" !!! Tail node is unlinked. " + current);
-        }
+        return hash;
     }
 
-    // Public operations
+    private Node<E> getNode(E e) {
+        int hash = hash(e);
+        return table[hash];
+    }
+
+    // Internal Linking methods
+
+    private Node<E> linkFirst(E item) {
+        Node<E> first = head;
+        head = new Node<>(null, item, hash(item), first);
+
+        if (first == null)
+            tail = head;
+        else
+            first.before = head;
+
+        table[head.hash] = head;
+        size++;
+        return head;
+    }
+
+    private Node<E> linkLast(E item) {
+        Node<E> last = tail;
+        tail = new Node<>(last, item, hash(item), null);
+
+        if (last == null)
+            head = tail;
+        else
+            last.after = tail;
+
+        table[tail.hash] = tail;
+        size++;
+        return tail;
+    }
+
+    private Node<E> linkBefore(E item, Node<E> node) {
+        Node<E> before = node.before;
+
+        if (before == null)
+            return linkFirst(item);
+
+        Node<E> newNode = new Node<>(before, item, hash(item), node);
+        before.after = node.before = newNode;
+
+        table[newNode.hash] = newNode;
+        size++;
+        return newNode;
+    }
+
+    private E unlinkFirst() {
+        if (size == 0)
+            return null;
+
+        Node<E> first = head;
+        if (first.after == null)
+            head = tail = null;
+        else {
+            head = first.after;
+            first.after.before = null;
+        }
+
+        table[head.hash] = null;
+        size--;
+        return first.item;
+    }
+
+    private E unlinkLast() {
+        if (size == 0)
+            return null;
+
+        Node<E> last = tail;
+        if (last.before == null)
+            head = tail = null;
+        else {
+            tail = last.before;
+            last.before.after = null;
+        }
+
+        table[tail.hash] = null;
+        size--;
+        return last.item;
+    }
+
+    private E unlink(Node<E> node) {
+        Node<E> before = node.before;
+        Node<E> after = node.after;
+
+        if (before == null)
+            head = after;
+        else {
+            before.after = after;
+            node.before = null;
+        }
+
+        if (after == null)
+            tail = before;
+        else {
+            after.before = before;
+            node.after = null;
+        }
+
+        table[node.hash] = null;
+        size--;
+        return node.item;
+    }
+
+    private Node<E> getNode(int index) {
+        Node<E> node;
+
+        int half = size >> 1;
+        if (index < half) {
+            node = head;
+            for (int i = 0; i < index; i++)
+                node = node.after;
+        } else {
+            node = tail;
+            for (int i = size - 1; i > index; i--)
+                node = node.before;
+        }
+
+        return node;
+    }
+
+    // Public Operations
 
     @Override
     public int size() {
         return size;
     }
 
-    @Override
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
     public int getThreshold() {
         return threshold;
     }
 
-    public E get(E element) {
-        Node<E> node = getNode(element);
-        return node == null ? null : node.key;
-    }
-
-    public E get(int index) {
-        if (index < 0 || index >= size)
-            throw new IndexOutOfBoundsException("Illegal index: " + index);
-
-        int half = size / 2;
-
-        // If the index is in the back half of the collection, then iterate
-        // from the tail end. Otherwise iterate from the head.
-        Node<E> node;
-        if (index > half) {
-            index = size - index - 1;
-            node = tail;
-
-            while (index-- > 0) {
-                node = node.before;
-            }
-        } else {
-            node = head;
-
-            while (index-- > 0) {
-                node = node.after;
-            }
-        }
-
-        return node.key;
-    }
-
-    public boolean insertSorted(E element) {
-        if (comparator == null)
-            throw new IllegalStateException("No comparator has been set");
-
-        int hash = element.hashCode();
-        validateHash(hash);
-        if (size == 0) {
-            head = tail = newNode(element, element.hashCode());
-            table[head.hash] = head;
-            size++;
-            return true;
-        } else if (this.contains(element)) {
+    @Override
+    public boolean contains(Object o) {
+        int hash = hash(o, true);
+        if (hash < 0 || hash >= threshold)
             return false;
-        }
+        else
+            return table[hash] != null;
+    }
 
-        Node<E> node = head;
-        int compare;
-        do {
-            compare = comparator.compare(node.key, element);
-        } while (compare < 0 && (node = node.after) != null);
+    @Override
+    public boolean add(E e) {
+        if (contains(e))
+            return false;
 
-        // Check if the element is on the tail first, then check if it is on
-        // the head
-        if (node == null) {
-            Node<E> insert = newNode(element, hash);
-            insert.before = tail;
-            table[hash] = tail = tail.after = insert;
-            size++;
-        } else if (node.before == null) {
-            Node<E> insert = newNode(element, hash);
-            insert.after = head;
-            table[hash] = head = head.before = insert;
-            size++;
-        } else {
-            insertNode(node.before, element);
-        }
-
+        linkLast(e);
         return true;
     }
 
-    public E getHead() {
-        return head == null ? null : head.key;
-    }
-
-    public E getTail() {
-        return tail == null ? null : tail.key;
-    }
-
     @Override
-    public boolean contains(Object o) {
-        return o != null && getNode(o) != null;
-    }
-
-    @Override
-    public boolean add(E element) {
-        if (element == null)
-            throw new IllegalArgumentException("Element cannot be null");
-
-        int hash = element.hashCode();
-        validateHash(hash);
+    public boolean remove(Object o) {
+        int hash = hash(o);
         Node<E> node = table[hash];
 
-        if (node == null) {
-            node = newNode(element, hash);
-            linkLast(node);
-            size++;
-            table[hash] = node;
-            return true;
-        } else {
+        if (node == null)
             return false;
-        }
-    }
 
-    public void insert(E node, E element) {
-        Node<E> n = getNode(node);
-        if (n == null)
-            throw new IllegalArgumentException("Unknown node: " + node);
-
-        insertNode(n, element);
-    }
-
-    @Override
-    public boolean remove(Object other) {
-        Node<E> node = getNode(other);
-        if (node != null) {
-            removeNode(node);
-            return true;
-        } else {
-            return false;
-        }
+        unlink(node);
+        return true;
     }
 
     @Override
     public void clear() {
-        if (size > 0) {
-            size = 0;
-            Arrays.fill(table, null);
-            head = tail = null;
+        if (size != 0) {
+            ListIterator<E> iterator = iterator();
+            while (iterator.hasNext()) {
+                iterator.next();
+                iterator.remove();
+            }
         }
+    }
+
+    public E get(int index) {
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException("For index: " + index);
+
+        return getNode(index).item;
+    }
+
+    public E get(E item) {
+        Node<E> node = getNode(item);
+        return node == null ? null : node.item;
     }
 
     public E getRandomElement() {
         if (size == 0)
-            return null;
+            throw new NoSuchElementException();
 
         return get(ThreadLocalRandom.current().nextInt(size));
     }
 
-    public void sort() {
+    // Sorting Operations (Defaults to natural order, if applicable)
 
+    public Comparator<E> getComparator() {
+        return comparator;
     }
 
     public void setComparator(Comparator<E> comparator) {
         this.comparator = comparator;
     }
 
-    // Internal operations
+    @SuppressWarnings("unchecked")
+    public void addSorted(E item) {
+        Comparator<E> comparator = this.comparator;
+        if (comparator == null)
+            comparator = (Comparator<E>) Comparator.naturalOrder();
 
-    private Node<E> newNode(E element, int hash) {
-        return new Node<>(element, hash);
+        if (isEmpty())
+            linkFirst(item);
+        else if (contains(item))
+            return;
+
+        Node<E> node = head;
+        int compare;
+        do {
+            compare = comparator.compare(node.item, item);
+        } while (compare < 0 && (node = node.after) != null);
+
+        if (node == null)
+            linkLast(item);
+        else
+            linkBefore(item, node);
     }
 
-    private void validateHash(int hash) {
-        if (hash < 0 || hash >= threshold)
-            throw new IllegalHashException("Illegal hash: " + hash + ", threshold: " + threshold);
-    }
+    @SuppressWarnings("unchecked")
+    public void sort() {
+        E[] arr = (E[]) new Object[size];
+        int index = 0;
+        for (E element : this) {
+            arr[index++] = element;
+        }
 
-    private void linkLast(Node<E> node) {
-        Node<E> last = tail;
-        tail = node;
+        Arrays.sort(arr);
 
-        if (last == null) {
-            head = node;
-        } else {
-            last.after = node;
-            node.before = last;
+        ListIterator<E> iterator = iterator();
+        while (iterator.hasNext()) {
+            index = iterator.nextIndex();
+            iterator.next();
+            iterator.set(arr[index]);
         }
     }
 
-    private Node<E> getNode(Object key) {
-        int hash = key.hashCode();
-        if (hash < 0 || hash >= threshold)
-            return null;
+    // Polling Operations (Deque)
+
+    @Override
+    public void addFirst(E e) {
+        if (!contains(e))
+            linkFirst(e);
         else
-            return table[hash];
+            throw new IllegalStateException(e + " already exists in this set");
     }
 
-    private void insertNode(Node<E> node, E element) {
-        int hash = element.hashCode();
-        validateHash(hash);
-        Node<E> temp = table[hash];
-        Node<E> after = node.after;
-
-        if (temp == null) {
-            table[hash] = temp = newNode(element, hash);
-            size++;
-
-            temp.before = node;
-            node.after = temp;
-            if (after != null) {
-                temp.after = after;
-                after.before = temp;
-            } else {
-                tail = temp;
-            }
-        } else {
-            throw new IllegalHashException("Duplicate hash: " + element);
-        }
+    @Override
+    public void addLast(E e) {
+        if (!contains(e))
+            linkLast(e);
+        else
+            throw new IllegalStateException(e + "already exists in this set");
     }
 
-    private void unlinkNode(Node<E> node) {
-        Node<E> before = node.before, after = node.after;
-        node.before = node.after = null;
-        if (before == null)
-            head = after;
-        else
-            before.after = after;
-        if (after == null)
-            tail = before;
-        else
-            after.before = before;
+    @Override
+    public boolean offerFirst(E e) {
+        if (contains(e))
+            return false;
+
+        linkFirst(e);
+        return true;
     }
 
-    private void removeNode(Node<E> node) {
-        table[node.hash] = null;
-        size--;
-        unlinkNode(node);
+    @Override
+    public boolean offerLast(E e) {
+        return add(e);
+    }
+
+    @Override
+    public E removeFirst() {
+        if (head == null)
+            throw new NoSuchElementException();
+
+        return unlinkFirst();
+    }
+
+    @Override
+    public E removeLast() {
+        if (tail == null)
+            throw new NoSuchElementException();
+
+        return unlinkLast();
+    }
+
+    @Override
+    public E pollFirst() {
+        return isEmpty() ? null : unlinkFirst();
+    }
+
+    @Override
+    public E pollLast() {
+        return isEmpty() ? null : unlinkLast();
+    }
+
+    @Override
+    public E getFirst() {
+        if (head == null)
+            throw new NoSuchElementException();
+
+        return head.item;
+    }
+
+    @Override
+    public E getLast() {
+        if (tail == null)
+            throw new NoSuchElementException();
+
+        return tail.item;
+    }
+
+    @Override
+    public E peekFirst() {
+        return isEmpty() ? null : head.item;
+    }
+
+    @Override
+    public E peekLast() {
+        return isEmpty() ? null : tail.item;
+    }
+
+    @Override
+    public boolean removeFirstOccurrence(Object o) {
+        return remove(o);
+    }
+
+    @Override
+    public boolean removeLastOccurrence(Object o) {
+        return remove(o);
+    }
+
+    @Override
+    public boolean offer(E e) {
+        return add(e);
+    }
+
+    @Override
+    public E remove() {
+        return removeFirst();
+    }
+
+    @Override
+    public E poll() {
+        return isEmpty() ? null : unlinkFirst() ;
+    }
+
+    @Override
+    public E element() {
+        return getFirst();
+    }
+
+    @Override
+    public E peek() {
+        return isEmpty() ? null : head.item;
+    }
+
+    @Override
+    public void push(E e) {
+        addFirst(e);
+    }
+
+    @Override
+    public E pop() {
+        return removeFirst();
     }
 
     // Iterators
 
     @Override
-    public SortedIterator<E> iterator() {
-        return new LinkedIterator();
+    public ListIterator<E> iterator() {
+        return new SortedIterator();
     }
 
-    private class LinkedIterator implements SortedIterator<E> {
+    @Override
+    public Iterator<E> descendingIterator() {
+        return new ReverseIterator();
+    }
 
-        private Node<E> current;
-        private Node<E> next;
+    private class SortedIterator implements ListIterator<E> {
 
-        LinkedIterator() {
+        Node<E> last;
+        Node<E> next;
+        int nextIndex;
+
+        private SortedIterator() {
             next = head;
         }
 
-        @Override
-        public void insert(E element) {
-            if (current == null) {
-                throw new IllegalStateException();
-            }
-
-            SortedList.this.insertNode(current, element);
+        private SortedIterator(int index) {
+            next = (index == size) ? null : getNode(index);
+            nextIndex = index;
         }
 
         @Override
         public boolean hasNext() {
-            return next != null;
-        }
-
-        public final Node<E> nextNode() {
-            Node<E> next = this.next;
-            if (next == null) {
-                throw new NoSuchElementException();
-            }
-
-            this.current = next;
-            this.next = next.after;
-            return next;
+            return nextIndex < size;
         }
 
         @Override
         public E next() {
-            return nextNode().key;
+            last = next;
+            next = next.after;
+            nextIndex++;
+            return last.item;
+        }
+
+        @Override
+        public boolean hasPrevious() {
+            return nextIndex > 0;
+        }
+
+        @Override
+        public E previous() {
+            last = next = (next == null ? tail : next.before);
+            nextIndex--;
+            return last.item;
+        }
+
+        @Override
+        public int nextIndex() {
+            return nextIndex;
+        }
+
+        @Override
+        public int previousIndex() {
+            return nextIndex - 1;
         }
 
         @Override
         public void remove() {
-            if (current == null) {
-                throw new IllegalStateException();
-            }
-
-            SortedList.this.removeNode(current);
+            unlink(last);
+            last = null;
+            nextIndex--;
         }
+
+        @Override
+        public void set(E e) {
+
+            // Remove the old value from the hashtable, and add the new
+            int hash = hash(e);
+            table[last.hash] = null;
+            table[hash] = last;
+
+            last.set(e, hash);
+        }
+
+        @Override
+        public void add(E e) {
+            last = null;
+            if (next == null)
+                linkLast(e);
+            else
+                linkBefore(e, next);
+
+            nextIndex++;
+        }
+    }
+
+    private class ReverseIterator implements Iterator<E> {
+
+        ListIterator<E> iterator;
+
+        private ReverseIterator() {
+            iterator = new SortedIterator(size);
+        }
+
+        @Override public boolean hasNext() { return iterator.hasPrevious(); }
+        @Override public E next()          { return iterator.previous(); }
+        @Override public void remove()     { iterator.remove(); }
     }
 }

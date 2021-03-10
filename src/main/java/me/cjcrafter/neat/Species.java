@@ -1,8 +1,9 @@
 package me.cjcrafter.neat;
 
 import me.cjcrafter.neat.genome.Genome;
-import me.cjcrafter.neat.util.SortedIterator;
 import me.cjcrafter.neat.util.SortedList;
+
+import java.util.ListIterator;
 
 public class Species {
 
@@ -73,11 +74,11 @@ public class Species {
     }
 
     public void kill(double percentage) {
-        // sort clients?
+        clients.sort();
 
         int count = 0;
         int bound = (int) (percentage * clients.size());
-        SortedIterator<Client> iterator = clients.iterator();
+        ListIterator<Client> iterator = clients.iterator();
 
         while (count++ < bound && iterator.hasNext()) {
             iterator.next().setSpecies(null);

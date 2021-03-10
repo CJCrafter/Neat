@@ -64,7 +64,7 @@ public enum Mutation {
                 connection = genome.getNeat().newConnectionGene(connection.getFrom(), connection.getTo());
                 connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1) * genome.getNeat().getRandomWeightStrength());
 
-                genome.getConnections().insertSorted(connection);
+                genome.getConnections().addSorted(connection);
                 break;
             }
         }

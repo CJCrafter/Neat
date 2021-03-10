@@ -1,11 +1,10 @@
-import me.cjcrafter.neat.util.SortedIterator;
 import me.cjcrafter.neat.util.SortedList;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.ListIterator;
 
 class SortedListTest {
 
@@ -16,9 +15,6 @@ class SortedListTest {
     static void fillLists() {
         Collections.addAll(list_1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
         Collections.addAll(list_2, 1, 2, 4, 8, 16, 31);
-
-        list_1.setComparator(Comparator.comparingInt(Integer::intValue));
-        list_2.setComparator(Comparator.comparingInt(Integer::intValue));
 
         System.out.println(list_1);
         System.out.println(list_2);
@@ -35,10 +31,10 @@ class SortedListTest {
 
     @Test
     public void testHeadTail() {
-        Assertions.assertEquals(list_1.getHead(), 0);
-        Assertions.assertEquals(list_1.getTail(), 9);
-        Assertions.assertEquals(list_2.getHead(), 1);
-        Assertions.assertEquals(list_2.getTail(), 31);
+        Assertions.assertEquals(list_1.getFirst(), 0);
+        Assertions.assertEquals(list_1.getLast(), 9);
+        Assertions.assertEquals(list_2.getFirst(), 1);
+        Assertions.assertEquals(list_2.getLast(), 31);
     }
 
     @Test
@@ -47,11 +43,11 @@ class SortedListTest {
         testInsert(list_1, 4, 12, false);
         testInsert(list_1, 9, 13, true);
 
-        list_1.insertSorted(10);
+        list_1.addSorted(10);
         System.out.println(list_1);
         Assertions.assertEquals(list_1.get(10), 10);
 
-        list_2.insertSorted(7);
+        list_2.addSorted(7);
         Assertions.assertEquals(list_2.get(3), 7);
     }
 
@@ -105,20 +101,20 @@ class SortedListTest {
 
         System.out.println(list);
 
-        Assertions.assertEquals(2, list.getHead());
-        Assertions.assertEquals(8, list.getTail());
+        Assertions.assertEquals(2, list.getFirst());
+        Assertions.assertEquals(8, list.getLast());
         Assertions.assertEquals(6, list.size());
     }
 
     private <E> void testInsert(SortedList<E> list, int index, E element, boolean expectError) {
         int oldIndex = index + 1;
         int size = list.size();
-        SortedIterator<E> iterator = list.iterator();
+        ListIterator<E> iterator = list.iterator();
         while (iterator.hasNext()) {
             iterator.next();
 
             if (index-- == 0) {
-                iterator.insert(element);
+                iterator.add(element);
                 break;
             }
         }
