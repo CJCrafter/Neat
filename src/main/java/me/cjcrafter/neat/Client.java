@@ -2,6 +2,7 @@ package me.cjcrafter.neat;
 
 import me.cjcrafter.neat.calculator.Calculator;
 import me.cjcrafter.neat.genome.Genome;
+import me.cjcrafter.neat.genome.Mutation;
 
 public class Client {
 
@@ -46,5 +47,10 @@ public class Client {
 
     public void setSpecies(Species species) {
         this.species = species;
+    }
+
+    public void mutate(Mutation mutation) {
+        calculator = null;
+        mutation.mutate(genome);
     }
 }

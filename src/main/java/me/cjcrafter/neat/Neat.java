@@ -6,6 +6,7 @@ import me.cjcrafter.neat.genome.NodeGene;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -163,10 +164,19 @@ public class Neat {
             }
         }
 
-        species.forEach(Species::evaluate);
+        // Evaluate the value of a species, then kill of it's lowest members
+        species.forEach(species -> {
+            species.evaluate();
+            species.kill(1.0 - survivalChance);
+        });
 
-        // Kill of the lowest members of the species so the best of the species
-        // get to reproduce.
-
+        if (species.size() == 1) {
+            Iterator<Species> iterator = species.iterator();
+            while (iterator.hasNext()) {
+                Species species = iterator.next();
+                species.kill();
+                iterator.remove();
+            }
+        }
     }
 }

@@ -5,7 +5,6 @@ import me.cjcrafter.neat.genome.Mutation;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 public class Frame extends JFrame {
@@ -38,7 +37,7 @@ public class Frame extends JFrame {
 
         JButton calculateButton = new JButton("Calculate");
         calculateButton.addActionListener(e -> {
-            System.out.println("Output: " + Arrays.toString(genome.getCalculator().calculate(.0, .25, .5, .75, 1)));
+            // todo
         });
         buttonHolder.add(calculateButton);
 
