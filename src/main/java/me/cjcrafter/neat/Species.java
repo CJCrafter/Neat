@@ -1,23 +1,37 @@
 package me.cjcrafter.neat;
 
 import me.cjcrafter.neat.genome.Genome;
-import me.cjcrafter.neat.util.SortedList;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Species {
 
-    private SortedList<Client> clients;
+    private List<Client> clients;
     private Client base;
     private double score;
 
     public Species(Client base) {
+        if (base == null)
+            throw new IllegalArgumentException();
+
+        this.clients = new ArrayList<>();
         this.base = base;
         this.base.setSpecies(this);
         this.clients.add(base);
     }
 
-    public SortedList<Client> getClients() {
+    private Client random() {
+        if (clients.size() == 0)
+            throw new NoSuchElementException();
+
+        return clients.get(ThreadLocalRandom.current().nextInt(clients.size()));
+    }
+
+    public List<Client> getClients() {
         return clients;
     }
 
@@ -30,11 +44,13 @@ public class Species {
     }
 
     public Neat getNeat() {
-        return base.getSpecies().getNeat();
+        return base.getGenome().getNeat();
     }
 
     public boolean matches(Client client) {
-        return base.getGenome().distance(client.getGenome()) < getNeat().getSpeciesDistance();
+        double distance = base.getGenome().distance(client.getGenome());
+        double max = getNeat().getSpeciesDistance();
+        return distance < max;
     }
 
     public boolean put(Client client) {
@@ -59,7 +75,7 @@ public class Species {
     }
 
     public void reset() {
-        base = clients.getRandomElement();
+        base = size() == 0 ? base : random();
         kill();
         clients.clear();
 
@@ -74,11 +90,11 @@ public class Species {
     }
 
     public void kill(double percentage) {
-        clients.sort();
+        clients.sort(null);
 
         int count = 0;
         int bound = (int) (percentage * clients.size());
-        ListIterator<Client> iterator = clients.iterator();
+        ListIterator<Client> iterator = clients.listIterator();
 
         while (count++ < bound && iterator.hasNext()) {
             iterator.next().setSpecies(null);
@@ -87,8 +103,11 @@ public class Species {
     }
 
     public Genome breed() {
-        Client c1 = clients.getRandomElement();
-        Client c2 = clients.getRandomElement();
+        if (clients.isEmpty())
+            return null;
+
+        Client c1 = random();
+        Client c2 = random();
 
         if (c1.getScore() > c2.getScore())
             return Genome.crossOver(c1.getGenome(), c2.getGenome());

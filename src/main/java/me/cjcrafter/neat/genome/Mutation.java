@@ -6,33 +6,36 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public enum Mutation {
 
-    RANDOM_WEIGHT(0.4) {
+    RANDOM_WEIGHT(0.002) {
         @Override
         public void mutate(Genome genome) {
+            if (genome.getConnections().isEmpty())
+                return;
+
             ConnectionGene connection = genome.getConnections().getRandomElement();
-            if (connection != null) {
-                connection.setWeight((ThreadLocalRandom.current().nextDouble() * 2 - 1)
-                        * genome.getNeat().getRandomWeightStrength());
-            }
+            connection.setWeight((ThreadLocalRandom.current().nextDouble() * 2 - 1)
+                    * genome.getNeat().getRandomWeightStrength());
         }
-    }, WEIGHT_SHIFT(0.4) {
+    }, WEIGHT_SHIFT(0.002) {
         @Override
         public void mutate(Genome genome) {
+            if (genome.getConnections().isEmpty())
+                return;
+
             ConnectionGene connection = genome.getConnections().getRandomElement();
-            if (connection != null) {
-                connection.setWeight(connection.getWeight() + (ThreadLocalRandom.current().nextDouble() * 2 - 1)
-                        * genome.getNeat().getShiftWeightStrength());
-            }
+            connection.setWeight(connection.getWeight() + (ThreadLocalRandom.current().nextDouble() * 2 - 1)
+                    * genome.getNeat().getShiftWeightStrength());
         }
-    }, TOGGLE(0.4) {
+    }, TOGGLE(0.0) {
         @Override
         public void mutate(Genome genome) {
+            if (genome.getConnections().isEmpty())
+                return;
+
             ConnectionGene connection = genome.getConnections().getRandomElement();
-            if (connection != null) {
-                connection.setEnabled(!connection.isEnabled());
-            }
+            connection.setEnabled(!connection.isEnabled());
         }
-    }, ADD_LINK(0.4) {
+    }, ADD_LINK(0.01) {
         @Override
         public void mutate(Genome genome) {
 
@@ -68,32 +71,33 @@ public enum Mutation {
                 break;
             }
         }
-    }, ADD_NODE(0.4) {
+    }, ADD_NODE(0.003) {
         @Override
         public void mutate(Genome genome) {
+            if (genome.getConnections().isEmpty())
+                return;
+
             ConnectionGene connection = genome.getConnections().getRandomElement();
 
-            if (connection != null) {
-                NodeGene from   = connection.getFrom();
-                NodeGene to     = connection.getTo();
-                NodeGene middle = genome.getNeat().newNode();
+            NodeGene from = connection.getFrom();
+            NodeGene to = connection.getTo();
+            NodeGene middle = genome.getNeat().newNode();
 
-                middle.setX((from.getX() + to.getX()) / 2);
-                middle.setY((from.getY() + to.getY()) / 2 + ThreadLocalRandom.current().nextDouble(-0.1, 0.1));
+            middle.setX((from.getX() + to.getX()) / 2);
+            middle.setY((from.getY() + to.getY()) / 2 + ThreadLocalRandom.current().nextDouble(-0.1, 0.1));
 
-                ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
-                ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);
+            ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
+            ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);
 
-                a.setWeight(1);
-                b.setWeight(connection.getWeight());
-                b.setEnabled(connection.isEnabled());
+            a.setWeight(1);
+            b.setWeight(connection.getWeight());
+            b.setEnabled(connection.isEnabled());
 
-                genome.getConnections().remove(connection);
-                genome.getConnections().add(a);
-                genome.getConnections().add(b);
+            genome.getConnections().remove(connection);
+            genome.getConnections().add(a);
+            genome.getConnections().add(b);
 
-                genome.getNodes().add(middle);
-            }
+            genome.getNodes().add(middle);
         }
     }, MUTATE(0.0) {
         @Override

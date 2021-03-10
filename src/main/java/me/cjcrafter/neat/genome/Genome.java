@@ -60,7 +60,7 @@ public class Genome {
 
         Iterator<ConnectionGene> iterator1 = g1.connections.iterator();
         Iterator<ConnectionGene> iterator2 = g2.connections.iterator();
-        ConnectionGene node1 = iterator1.next(), node2 = iterator2.next();
+        ConnectionGene node1 = null, node2 = null;
         boolean check1 = true, check2 = true;
         int index = 0;
         while (iterator1.hasNext() && iterator2.hasNext()) {
@@ -97,7 +97,7 @@ public class Genome {
             n = 1;
         }
 
-        weightDiff /= similar;
+        weightDiff /= Math.max(similar, 1);
         int excess = g1.connections.size() - index;
 
         return neat.getFactor1() * excess / n + neat.getFactor2() * disjoint / n + neat.getFactor3() * weightDiff;
@@ -123,7 +123,7 @@ public class Genome {
 
         Iterator<ConnectionGene> iterator1 = g1.connections.iterator();
         Iterator<ConnectionGene> iterator2 = g2.connections.iterator();
-        ConnectionGene node1 = iterator1.next(), node2 = iterator2.next();
+        ConnectionGene node1 = null, node2 = null;
         boolean check1 = true, check2 = true;
         while (iterator1.hasNext() && iterator2.hasNext()) {
 

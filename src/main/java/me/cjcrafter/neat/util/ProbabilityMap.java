@@ -78,6 +78,9 @@ public class ProbabilityMap<E> extends AbstractCollection<E> implements Set<E> {
     // Probability Operations
 
     public void put(E item, double chance) {
+        if (item == null)
+            throw new IllegalArgumentException();
+
         dummy.item = item;
 
         if (map.containsKey(dummy)) {
@@ -86,6 +89,7 @@ public class ProbabilityMap<E> extends AbstractCollection<E> implements Set<E> {
         } else {
             Node<E> node = new Node<>(item, chance, total);
             node.next = map.ceilingKey(node);
+            map.put(node, node);
             total += chance;
         }
     }
@@ -102,7 +106,7 @@ public class ProbabilityMap<E> extends AbstractCollection<E> implements Set<E> {
             throw new NoSuchElementException();
 
         dummy.offset = random.nextDouble(total);
-        return map.get(dummy).item;
+        return map.floorKey(dummy).item;
     }
 
     // Set Operations

@@ -2,11 +2,14 @@ package me.cjcrafter.neat;
 
 import me.cjcrafter.neat.genome.ConnectionGene;
 import me.cjcrafter.neat.genome.Genome;
+import me.cjcrafter.neat.genome.Mutation;
 import me.cjcrafter.neat.genome.NodeGene;
+import me.cjcrafter.neat.util.ProbabilityMap;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +40,7 @@ public class Neat {
         this.connectionCache = new HashMap<>();
         this.nodeCache = new ArrayList<>();
         this.clients = new ArrayList<>(clients);
+        this.species = new ArrayList<>();
 
         this.inputNodes = inputNodes;
         this.outputNodes = outputNodes;
@@ -145,13 +149,13 @@ public class Neat {
 
     public void evolve() {
 
+        species.forEach(Species::reset);
+
         // We need to reset all of the species, and resort all of the clients
         // into their species. If no such species exists, we create new ones.
         for (Client client : clients) {
             if (client.getSpecies() == null) {
                 for (Species species : species) {
-                    species.reset();
-
                     if (species.put(client)) {
                         break;
                     }
@@ -170,13 +174,46 @@ public class Neat {
             species.kill(1.0 - survivalChance);
         });
 
-        if (species.size() == 1) {
-            Iterator<Species> iterator = species.iterator();
-            while (iterator.hasNext()) {
-                Species species = iterator.next();
-                species.kill();
-                iterator.remove();
+        for (Species species : species) {
+            if (species.size() == 1) {
+                species.getClients().remove(0);
             }
         }
+
+        ProbabilityMap<Species> random = new ProbabilityMap<>();
+        random.putAll(species, Species::getScore);
+
+        for (Client client : clients) {
+            if (client.getSpecies() == null) {
+                Species species = random.get();
+                client.setGenome(species.breed());
+                client.mutate(Mutation.MUTATE);
+                species.put(client, true);
+            }
+        }
+    }
+
+    public void temp() {
+        double[] in = new double[5];
+        for (int i = 0; i < in.length; i++)
+            in[i] = Math.random();
+
+        for (int i = 0; i < 100; i++) {
+            clients.forEach(client -> client.setScore(client.getCalculator().calculate(in)[0]));
+            evolve();
+            printSpecies();
+        }
+    }
+
+    public void printSpecies() {
+        System.out.println("------------------------------");
+        System.out.println("Score        | Clients");
+        for (Species species : species) {
+            System.out.printf("%-13s|  %-15s%n", round(species.getScore()), species.size());
+        }
+    }
+
+    private double round(double a) {
+        return new BigDecimal(a, new MathContext(10)).doubleValue();
     }
 }
