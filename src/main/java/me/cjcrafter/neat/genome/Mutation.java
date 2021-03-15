@@ -81,10 +81,17 @@ public enum Mutation {
 
             NodeGene from = connection.getFrom();
             NodeGene to = connection.getTo();
-            NodeGene middle = genome.getNeat().newNode();
+            NodeGene middle;
 
-            middle.setX((from.getX() + to.getX()) / 2);
-            middle.setY((from.getY() + to.getY()) / 2 + ThreadLocalRandom.current().nextDouble(-0.1, 0.1));
+            int replaceId = genome.getNeat().getReplaceIndex(from, to);
+            if (replaceId == -1) {
+                middle = genome.getNeat().newNode();
+                middle.setX((from.getX() + to.getX()) / 2);
+                middle.setY((from.getY() + to.getY()) / 2);
+                genome.getNeat().setReplaceIndex(from, to, middle.getId());
+            } else {
+                middle = genome.getNeat().getNode(replaceId);
+            }
 
             ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
             ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);

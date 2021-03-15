@@ -11,6 +11,8 @@ public class ConnectionGene extends Gene {
     private double weight;
     private boolean enabled;
 
+    private int replaceId;
+
     public ConnectionGene(NodeGene from, NodeGene to) {
 
         // We don't know the id yet, the main Neat class handles this.
@@ -60,6 +62,14 @@ public class ConnectionGene extends Gene {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public int getReplaceId() {
+        return replaceId;
+    }
+
+    public void setReplaceId(int id) {
+        this.replaceId = id;
     }
 
     @Override

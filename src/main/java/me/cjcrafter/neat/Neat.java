@@ -1,27 +1,36 @@
 package me.cjcrafter.neat;
 
+import me.cjcrafter.neat.file.Serializable;
 import me.cjcrafter.neat.genome.ConnectionGene;
 import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
 import me.cjcrafter.neat.genome.NodeGene;
+import me.cjcrafter.neat.ui.Frame;
+import me.cjcrafter.neat.ui.GenePanel;
+import me.cjcrafter.neat.util.DoubleMap;
 import me.cjcrafter.neat.util.ProbabilityMap;
+import org.json.simple.JSONObject;
 
+import java.io.File;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class Neat {
+public class Neat implements Serializable {
 
     public static final int MAX_NODE_BITS = 8;
     public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
     private double speciesDistance = 4.0;
-    private double survivalChance = 0.80;
+    private double survivalChance = 0.90;
     private double factor1 = 1.0, factor2 = 1.0, factor3 = 1.0;
     private double randomWeightStrength = 1.0, shiftWeightStrength = 0.3;
+    private DoubleMap<String> properties
 
     private Map<ConnectionGene, ConnectionGene> connectionCache;
     private List<NodeGene> nodeCache;
@@ -31,6 +40,10 @@ public class Neat {
     private int inputNodes;
     private int outputNodes;
     private int maxClients;
+
+    public Neat() {
+
+    }
 
     public Neat(int inputNodes, int outputNodes, int clients) {
         init(inputNodes, outputNodes, clients);
@@ -137,6 +150,15 @@ public class Neat {
         return connection;
     }
 
+    public int getReplaceIndex(NodeGene from, NodeGene to) {
+        ConnectionGene connection = connectionCache.get(new ConnectionGene(from, to));
+        return connection == null ? -1 : connection.getReplaceId();
+    }
+
+    public void setReplaceIndex(NodeGene from, NodeGene to, int id) {
+        connectionCache.get(new ConnectionGene(from, to)).setReplaceId(id);
+    }
+
     public NodeGene getNode(int id) {
         if (id < 0 || id > nodeCache.size()) {
             throw new ArrayIndexOutOfBoundsException("Invalid innovation id: " + id);
@@ -168,15 +190,18 @@ public class Neat {
             }
         }
 
-        // Evaluate the value of a species, then kill of it's lowest members
-        species.forEach(species -> {
-            species.evaluate();
-            species.kill(1.0 - survivalChance);
-        });
+        // Evaluate the value of a species, then kill of it's lowest members.
+        // If a species becomes to small, it dies out.
+        Iterator<Species> iterator = species.iterator();
+        while (iterator.hasNext()) {
+            Species next = iterator.next();
 
-        for (Species species : species) {
-            if (species.size() == 1) {
-                species.getClients().remove(0);
+            next.evaluate();
+            next.kill(1.0 - survivalChance);
+
+            if (next.size() <= 1) {
+                next.kill();
+                iterator.remove();
             }
         }
 
@@ -194,6 +219,7 @@ public class Neat {
     }
 
     public void temp() {
+
         double[] in = new double[5];
         for (int i = 0; i < in.length; i++)
             in[i] = Math.random();
@@ -201,7 +227,20 @@ public class Neat {
         for (int i = 0; i < 100; i++) {
             clients.forEach(client -> client.setScore(client.getCalculator().calculate(in)[0]));
             evolve();
+            clients.sort(Comparator.comparingDouble(Client::getScore));
             printSpecies();
+        }
+
+        Frame frame = new Frame();
+
+        int index = 0;
+        while (true) {
+            frame.setGenome(clients.get(index++ % clients.size()).getGenome());
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -215,5 +254,24 @@ public class Neat {
 
     private double round(double a) {
         return new BigDecimal(a, new MathContext(10)).doubleValue();
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public JSONObject deserialize() {
+        JSONObject json = new JSONObject();
+        json.put("speciesDistance", speciesDistance);
+        json.put("survivalChance", survivalChance);
+        json.put("factor1", factor1);
+        json.put("factor2", factor2);
+        json.put("factor3", factor3);
+        json.put("randomWeightStrength", randomWeightStrength);
+        json.put("shiftWeightStrength", shiftWeightStrength);
+        return json;
+    }
+
+    @Override
+    public void serialize(JSONObject data) {
+
     }
 }

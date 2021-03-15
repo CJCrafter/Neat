@@ -27,6 +27,7 @@ public class GenePanel extends JPanel {
 
     public void setGenome(Genome genome) {
         this.genome = genome;
+        repaint();
     }
 
     @Override
