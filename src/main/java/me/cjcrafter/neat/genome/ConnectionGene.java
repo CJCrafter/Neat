@@ -1,10 +1,12 @@
 package me.cjcrafter.neat.genome;
 
 import me.cjcrafter.neat.Neat;
+import me.cjcrafter.neat.file.Serializable;
+import org.json.simple.JSONObject;
 
 import java.util.Objects;
 
-public class ConnectionGene extends Gene {
+public class ConnectionGene extends Gene implements Serializable {
 
     private NodeGene from;
     private NodeGene to;
@@ -30,6 +32,7 @@ public class ConnectionGene extends Gene {
         this.to = other.to;
         this.weight = other.weight;
         this.enabled = other.enabled;
+        this.replaceId = other.replaceId;
     }
 
     public NodeGene getFrom() {
@@ -70,6 +73,23 @@ public class ConnectionGene extends Gene {
 
     public void setReplaceId(int id) {
         this.replaceId = id;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public JSONObject deserialize() {
+        JSONObject json = super.deserialize();
+        json.put("from", from.id);
+        json.put("to", to.id);
+        json.put("weight", weight);
+        json.put("enabled", enabled);
+        json.put("replaceId", replaceId);
+        return json;
+    }
+
+    @Override
+    public void serialize(JSONObject data) {
+
     }
 
     @Override

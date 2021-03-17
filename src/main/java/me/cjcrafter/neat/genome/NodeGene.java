@@ -1,5 +1,7 @@
 package me.cjcrafter.neat.genome;
 
+import org.json.simple.JSONObject;
+
 public class NodeGene extends Gene {
 
     private double x;
@@ -23,6 +25,20 @@ public class NodeGene extends Gene {
 
     public void setY(double y) {
         this.y = y;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public JSONObject deserialize() {
+        JSONObject json = super.deserialize();
+        json.put("x", x);
+        json.put("y", y);
+        return json;
+    }
+
+    @Override
+    public void serialize(JSONObject data) {
+        super.serialize(data);
     }
 
     @Override

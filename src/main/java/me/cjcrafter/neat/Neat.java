@@ -1,17 +1,19 @@
 package me.cjcrafter.neat;
 
+import me.cjcrafter.neat.file.ListDeserializer;
 import me.cjcrafter.neat.file.Serializable;
 import me.cjcrafter.neat.genome.ConnectionGene;
 import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
 import me.cjcrafter.neat.genome.NodeGene;
 import me.cjcrafter.neat.ui.Frame;
-import me.cjcrafter.neat.ui.GenePanel;
 import me.cjcrafter.neat.util.DoubleMap;
 import me.cjcrafter.neat.util.ProbabilityMap;
 import org.json.simple.JSONObject;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.ArrayList;
@@ -23,14 +25,18 @@ import java.util.Map;
 
 public class Neat implements Serializable {
 
-    public static final int MAX_NODE_BITS = 8;
+    public static final int MAX_NODE_BITS = 12;
     public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
-    private double speciesDistance = 4.0;
-    private double survivalChance = 0.90;
-    private double factor1 = 1.0, factor2 = 1.0, factor3 = 1.0;
-    private double randomWeightStrength = 1.0, shiftWeightStrength = 0.3;
-    private DoubleMap<String> properties
+    public static final String SPECIES_DISTANCE_PROPERTY = "speciesDistance";
+    public static final String SURVIVAL_CHANCE_PROPERTY = "survivalChance";
+    public static final String EXCESS_FACTOR_PROPERTY = "excessFactor";
+    public static final String DISJOINT_FACTOR_PROPERTY = "disjointFactor";
+    public static final String WEIGHT_DIFFERENCE_PROPERTY = "weightDifference";
+    public static final String RANDOM_WEIGHT_STRENGTH_PROPERTY = "randomWeightStrength";
+    public static final String SHIFT_WEIGHT_STRENGTH_PROPERTY = "shiftWeightStrength";
+
+    private DoubleMap<String> properties;
 
     private Map<ConnectionGene, ConnectionGene> connectionCache;
     private List<NodeGene> nodeCache;
@@ -58,6 +64,15 @@ public class Neat implements Serializable {
         this.inputNodes = inputNodes;
         this.outputNodes = outputNodes;
         this.maxClients = clients;
+
+        properties = new DoubleMap<>();
+        properties.put(SPECIES_DISTANCE_PROPERTY, 6.0);
+        properties.put(SURVIVAL_CHANCE_PROPERTY, 0.80);
+        properties.put(EXCESS_FACTOR_PROPERTY, 2.0);
+        properties.put(DISJOINT_FACTOR_PROPERTY, 2.0);
+        properties.put(WEIGHT_DIFFERENCE_PROPERTY, 1.0);
+        properties.put(RANDOM_WEIGHT_STRENGTH_PROPERTY, 1.0);
+        properties.put(SHIFT_WEIGHT_STRENGTH_PROPERTY, 0.3);
 
         // Sets the input node layer. The number of input nodes will not change
         // unless the reset method is called. The input nodes are always
@@ -92,28 +107,12 @@ public class Neat implements Serializable {
         return outputNodes;
     }
 
-    public double getSpeciesDistance() {
-        return speciesDistance;
+    public double getProperty(String property) {
+        return properties.get(property);
     }
 
-    public double getFactor1() {
-        return factor1;
-    }
-
-    public double getFactor2() {
-        return factor2;
-    }
-
-    public double getFactor3() {
-        return factor3;
-    }
-
-    public double getRandomWeightStrength() {
-        return randomWeightStrength;
-    }
-
-    public double getShiftWeightStrength() {
-        return shiftWeightStrength;
+    public double setDouble(String property, double value) {
+        return properties.put(property, value);
     }
 
     public Genome newGenome() {
@@ -150,14 +149,14 @@ public class Neat implements Serializable {
         return connection;
     }
 
-    public int getReplaceIndex(NodeGene from, NodeGene to) {
-        ConnectionGene connection = connectionCache.get(new ConnectionGene(from, to));
-        return connection == null ? -1 : connection.getReplaceId();
-    }
-
-    public void setReplaceIndex(NodeGene from, NodeGene to, int id) {
-        connectionCache.get(new ConnectionGene(from, to)).setReplaceId(id);
-    }
+    //public int getReplaceIndex(NodeGene from, NodeGene to) {
+    //    ConnectionGene connection = connectionCache.get(new ConnectionGene(from, to));
+    //    return connection == null ? -1 : connection.getReplaceId();
+    //}
+//
+    //public void setReplaceIndex(NodeGene from, NodeGene to, int id) {
+    //    connectionCache.get(new ConnectionGene(from, to)).setReplaceId(id);
+    //}
 
     public NodeGene getNode(int id) {
         if (id < 0 || id > nodeCache.size()) {
@@ -197,7 +196,7 @@ public class Neat implements Serializable {
             Species next = iterator.next();
 
             next.evaluate();
-            next.kill(1.0 - survivalChance);
+            next.kill(1.0 - getProperty(SURVIVAL_CHANCE_PROPERTY));
 
             if (next.size() <= 1) {
                 next.kill();
@@ -220,15 +219,40 @@ public class Neat implements Serializable {
 
     public void temp() {
 
-        double[] in = new double[5];
-        for (int i = 0; i < in.length; i++)
-            in[i] = Math.random();
+        Function[] functions = new Function[]{
+                new Function(0, 0),
+                new Function(1, 0),
+                new Function(0, 1),
+                new Function(1, 1)
+        };
 
-        for (int i = 0; i < 100; i++) {
-            clients.forEach(client -> client.setScore(client.getCalculator().calculate(in)[0]));
+        for (int i = 0; i < 1000; i++) {
+            clients.forEach(client -> {
+                double incorrectness = 0.0;
+                for (Function function : functions) {
+                    double output = client.getCalculator().calculate(function.input1, function.input2)[0];
+                    incorrectness += Math.abs(function.output - output);
+                }
+
+                client.setScore(4.0 - incorrectness);
+            });
+
             evolve();
-            clients.sort(Comparator.comparingDouble(Client::getScore));
-            printSpecies();
+            //printSpecies();
+        }
+
+        clients.sort(Comparator.comparingDouble(Client::getScore));
+        Client client = clients.get(0);
+
+        for (Function function : functions) {
+            System.out.printf("%s ^ %s = %s%n", function.input1, function.input2, client.getCalculator().calculate(function.input1, function.input2)[0]);
+        }
+
+        JSONObject json = deserialize();
+        try (FileWriter writer = new FileWriter(System.getProperty("user.dir") + File.separator + "neat.json")) {
+            writer.write(json.toJSONString());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         Frame frame = new Frame();
@@ -241,6 +265,17 @@ public class Neat implements Serializable {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private static class Function {
+        int input1;
+        int input2;
+        int output;
+        public Function(int input1, int input2) {
+            this.input1 = input1;
+            this.input2 = input2;
+            this.output = input1 ^ input2;
         }
     }
 
@@ -260,13 +295,14 @@ public class Neat implements Serializable {
     @SuppressWarnings("unchecked")
     public JSONObject deserialize() {
         JSONObject json = new JSONObject();
-        json.put("speciesDistance", speciesDistance);
-        json.put("survivalChance", survivalChance);
-        json.put("factor1", factor1);
-        json.put("factor2", factor2);
-        json.put("factor3", factor3);
-        json.put("randomWeightStrength", randomWeightStrength);
-        json.put("shiftWeightStrength", shiftWeightStrength);
+        json.put("properties", properties.deserialize());
+        json.put("inputNodes", inputNodes);
+        json.put("outputNodes", outputNodes);
+        json.put("maxClients", maxClients);
+
+        json.put("connections", new ListDeserializer(connectionCache.keySet()).deserialize());
+        json.put("nodes", new ListDeserializer(nodeCache).deserialize());
+        json.put("clients", new ListDeserializer(clients).deserialize());
         return json;
     }
 

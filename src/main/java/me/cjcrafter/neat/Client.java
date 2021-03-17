@@ -1,10 +1,12 @@
 package me.cjcrafter.neat;
 
 import me.cjcrafter.neat.calculator.Calculator;
+import me.cjcrafter.neat.file.Serializable;
 import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
+import org.json.simple.JSONObject;
 
-public class Client implements Comparable<Client> {
+public class Client implements Comparable<Client>, Serializable {
 
     private Calculator calculator;
     private Genome genome;
@@ -52,6 +54,20 @@ public class Client implements Comparable<Client> {
     public void mutate(Mutation mutation) {
         calculator = null;
         mutation.mutate(genome);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public JSONObject deserialize() {
+        JSONObject json = new JSONObject();
+        json.put("genome", genome.deserialize());
+        json.put("score", score);
+        return json;
+    }
+
+    @Override
+    public void serialize(JSONObject data) {
+
     }
 
     @Override

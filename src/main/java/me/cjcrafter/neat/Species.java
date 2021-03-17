@@ -49,7 +49,7 @@ public class Species {
 
     public boolean matches(Client client) {
         double distance = base.getGenome().distance(client.getGenome());
-        double max = getNeat().getSpeciesDistance();
+        double max = getNeat().getProperty(Neat.SPECIES_DISTANCE_PROPERTY);
         return distance < max;
     }
 

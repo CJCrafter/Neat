@@ -1,13 +1,16 @@
 package me.cjcrafter.neat.genome;
 
 import me.cjcrafter.neat.Neat;
+import me.cjcrafter.neat.file.Serializable;
 import me.cjcrafter.neat.util.SortedList;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class Genome {
+public class Genome implements Serializable {
 
     private final SortedList<ConnectionGene> connections;
     private final SortedList<NodeGene> nodes;
@@ -100,7 +103,9 @@ public class Genome {
         weightDiff /= Math.max(similar, 1);
         int excess = g1.connections.size() - index;
 
-        return neat.getFactor1() * excess / n + neat.getFactor2() * disjoint / n + neat.getFactor3() * weightDiff;
+        return neat.getProperty(Neat.EXCESS_FACTOR_PROPERTY) * excess / n
+                + neat.getProperty(Neat.DISJOINT_FACTOR_PROPERTY) * disjoint / n
+                + neat.getProperty(Neat.WEIGHT_DIFFERENCE_PROPERTY) * weightDiff;
     }
 
     public void mutate(Mutation mutation) {
@@ -159,6 +164,32 @@ public class Genome {
         });
 
         return child;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public JSONObject deserialize() {
+        JSONObject json = new JSONObject();
+        JSONArray arr;
+
+        arr = new JSONArray();
+        for (ConnectionGene connection : connections) {
+            arr.add(connection.getId());
+        }
+        json.put("connections", arr);
+
+        arr = new JSONArray();
+        for (NodeGene node : nodes) {
+            arr.add(node.id);
+        }
+        json.put("nodes", arr);
+
+        return json;
+    }
+
+    @Override
+    public void serialize(JSONObject data) {
+
     }
 
     @Override

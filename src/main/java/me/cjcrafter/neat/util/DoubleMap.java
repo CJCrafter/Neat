@@ -3,8 +3,6 @@ package me.cjcrafter.neat.util;
 import me.cjcrafter.neat.file.Serializable;
 import org.json.simple.JSONObject;
 
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -15,9 +13,6 @@ public class DoubleMap<K> implements Serializable {
     private static final int DEFAULT_INITIAL_CAPACITY = 1 << 4;
     private static final int MAXIMUM_CAPACITY = 1 << 30;
     private static final float DEFAULT_LOAD_FACTOR = 0.75f;
-    private static final int TREEIFY_THRESHOLD = 8;
-    private static final int UNTREEIFY_THRESHOLD = 6;
-    private static final int MIN_TREEIFY_CAPACITY = 64;
 
     private static class Node<K> {
 
@@ -59,8 +54,15 @@ public class DoubleMap<K> implements Serializable {
         return key.hashCode();
     }
 
-    private Node<K> getNode(K key) {
-        return table[hash(key) & (threshold - 1)];
+    private Node<K> getNode(Object key) {
+        Node<K> node = table[hash(key) & (threshold - 1)];
+
+        do {
+            if (Objects.equals(node.key, key))
+                return node;
+        } while ((node = node.next) != null);
+
+        return null;
     }
 
     private void resize() {
@@ -145,7 +147,12 @@ public class DoubleMap<K> implements Serializable {
     }
 
     public boolean contains(Object key) {
-        return table[hash(key) & (table.length - 1)] != null;
+        return getNode(key) != null;
+    }
+
+    public double get(K key) {
+        Node<K> node = getNode(key);
+        return node == null ? 0.0 : node.value;
     }
 
     public double put(K key, double value) {
@@ -241,9 +248,17 @@ public class DoubleMap<K> implements Serializable {
     // File methods
 
     @Override
+    @SuppressWarnings("unchecked")
     public JSONObject deserialize() {
         JSONObject json = new JSONObject();
 
+        EntryIterator iterator = new EntryIterator();
+        while (iterator.hasNext()) {
+            Map.Entry<K, Double> entry = iterator.next();
+            json.put(entry.getKey(), entry.getValue());
+        }
+
+        return json;
     }
 
     @Override

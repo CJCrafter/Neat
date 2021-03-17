@@ -1,5 +1,6 @@
 package me.cjcrafter.neat.genome;
 
+import me.cjcrafter.neat.Neat;
 import me.cjcrafter.neat.util.SortedList;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -14,7 +15,7 @@ public enum Mutation {
 
             ConnectionGene connection = genome.getConnections().getRandomElement();
             connection.setWeight((ThreadLocalRandom.current().nextDouble() * 2 - 1)
-                    * genome.getNeat().getRandomWeightStrength());
+                    * genome.getNeat().getProperty(Neat.RANDOM_WEIGHT_STRENGTH_PROPERTY));
         }
     }, WEIGHT_SHIFT(0.002) {
         @Override
@@ -24,7 +25,7 @@ public enum Mutation {
 
             ConnectionGene connection = genome.getConnections().getRandomElement();
             connection.setWeight(connection.getWeight() + (ThreadLocalRandom.current().nextDouble() * 2 - 1)
-                    * genome.getNeat().getShiftWeightStrength());
+                    * genome.getNeat().getProperty(Neat.SHIFT_WEIGHT_STRENGTH_PROPERTY));
         }
     }, TOGGLE(0.0) {
         @Override
@@ -65,7 +66,8 @@ public enum Mutation {
                 // Pull the connection from the neat pool of connections, or
                 // add it if it does not yet exist
                 connection = genome.getNeat().newConnectionGene(connection.getFrom(), connection.getTo());
-                connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1) * genome.getNeat().getRandomWeightStrength());
+                connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1)
+                        * genome.getNeat().getProperty(Neat.RANDOM_WEIGHT_STRENGTH_PROPERTY));
 
                 genome.getConnections().addSorted(connection);
                 break;
@@ -83,15 +85,15 @@ public enum Mutation {
             NodeGene to = connection.getTo();
             NodeGene middle;
 
-            int replaceId = genome.getNeat().getReplaceIndex(from, to);
-            if (replaceId == -1) {
+            //int replaceId = genome.getNeat().getReplaceIndex(from, to);
+            //if (replaceId == -1) {
                 middle = genome.getNeat().newNode();
                 middle.setX((from.getX() + to.getX()) / 2);
                 middle.setY((from.getY() + to.getY()) / 2);
-                genome.getNeat().setReplaceIndex(from, to, middle.getId());
-            } else {
-                middle = genome.getNeat().getNode(replaceId);
-            }
+            //    genome.getNeat().setReplaceIndex(from, to, middle.getId());
+            //} else {
+            //    middle = genome.getNeat().getNode(replaceId);
+            //}
 
             ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
             ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);
