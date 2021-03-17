@@ -104,4 +104,15 @@ public class ConnectionGene extends Gene implements Serializable {
     public int hashCode() {
         return from.getId() << (Neat.MAX_NODE_BITS) | to.getId();
     }
+
+    @Override
+    public String toString() {
+        return "ConnectionGene{" +
+                "from=" + from.id +
+                ", to=" + to.id +
+                ", weight=" + weight +
+                ", enabled=" + enabled +
+                ", id=" + id +
+                '}';
+    }
 }

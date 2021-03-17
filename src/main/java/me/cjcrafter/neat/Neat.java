@@ -9,6 +9,7 @@ import me.cjcrafter.neat.genome.NodeGene;
 import me.cjcrafter.neat.ui.Frame;
 import me.cjcrafter.neat.util.DoubleMap;
 import me.cjcrafter.neat.util.ProbabilityMap;
+import me.cjcrafter.neat.util.Timer;
 import org.json.simple.JSONObject;
 
 import java.io.File;
@@ -25,7 +26,7 @@ import java.util.Map;
 
 public class Neat implements Serializable {
 
-    public static final int MAX_NODE_BITS = 12;
+    public static final int MAX_NODE_BITS = 8;
     public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
     public static final String SPECIES_DISTANCE_PROPERTY = "speciesDistance";
@@ -66,8 +67,8 @@ public class Neat implements Serializable {
         this.maxClients = clients;
 
         properties = new DoubleMap<>();
-        properties.put(SPECIES_DISTANCE_PROPERTY, 6.0);
-        properties.put(SURVIVAL_CHANCE_PROPERTY, 0.80);
+        properties.put(SPECIES_DISTANCE_PROPERTY, 3.0);
+        properties.put(SURVIVAL_CHANCE_PROPERTY, 0.70);
         properties.put(EXCESS_FACTOR_PROPERTY, 2.0);
         properties.put(DISJOINT_FACTOR_PROPERTY, 2.0);
         properties.put(WEIGHT_DIFFERENCE_PROPERTY, 1.0);
@@ -111,7 +112,7 @@ public class Neat implements Serializable {
         return properties.get(property);
     }
 
-    public double setDouble(String property, double value) {
+    public double setProperty(String property, double value) {
         return properties.put(property, value);
     }
 
@@ -226,8 +227,14 @@ public class Neat implements Serializable {
                 new Function(1, 1)
         };
 
-        for (int i = 0; i < 1000; i++) {
-            clients.forEach(client -> {
+        Timer evolveTimer = new Timer();
+        double evolveTime = 0.0;
+        Timer fitnessTimer = new Timer();
+        double fitnessTime = 0.0;
+
+        for (int i = 0; i < 10000; i++) {
+            fitnessTimer.start();
+            for (Client client : clients) {
                 double incorrectness = 0.0;
                 for (Function function : functions) {
                     double output = client.getCalculator().calculate(function.input1, function.input2)[0];
@@ -235,10 +242,22 @@ public class Neat implements Serializable {
                 }
 
                 client.setScore(4.0 - incorrectness);
-            });
+            }
+            fitnessTime += fitnessTimer.stop();
 
+            evolveTimer.start();
             evolve();
-            //printSpecies();
+            evolveTime += evolveTimer.stop();
+
+
+            if (i % 1000 == 0) {
+                System.out.println(i + " iterations completed");
+                System.out.println("\tEvolution: " + evolveTime + "s");
+                System.out.println("\tFitness: " + fitnessTime + "s");
+                System.out.println();
+                printSpecies();
+            }
+
         }
 
         clients.sort(Comparator.comparingDouble(Client::getScore));
@@ -248,11 +267,13 @@ public class Neat implements Serializable {
             System.out.printf("%s ^ %s = %s%n", function.input1, function.input2, client.getCalculator().calculate(function.input1, function.input2)[0]);
         }
 
-        JSONObject json = deserialize();
-        try (FileWriter writer = new FileWriter(System.getProperty("user.dir") + File.separator + "neat.json")) {
-            writer.write(json.toJSONString());
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (false) {
+            JSONObject json = deserialize();
+            try (FileWriter writer = new FileWriter(System.getProperty("user.dir") + File.separator + "neat.json")) {
+                writer.write(json.toJSONString());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         Frame frame = new Frame();

@@ -7,10 +7,15 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
+
+    private static final int DEFAULT_INITIAL_CAPACITY = 1 << 4;
+    private static final int MAXIMUM_CAPACITY = 1 << 30;
+    private static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
     private static class Node<E> {
 
@@ -29,6 +34,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
         E item;
         int hash;
         Node<E> before, after;
+        Node<E> _2d;
 
         public E get()                    { return item; }
         public void set(E item, int hash) { this.item = item; this.hash = hash; }
@@ -36,23 +42,24 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
         public String toString()          { return item.toString(); }
     }
 
-    private final int threshold;
-    private final Node<E>[] table;
+    private Node<E>[] table;
     private Node<E> head, tail;
+    private int threshold;
     private int size;
+    private float loadFactor;
 
     private Comparator<E> comparator;
 
-    @SuppressWarnings("unchecked")
-    public SortedList(int threshold) {
-        this.threshold = threshold;
-        this.table = (Node<E>[]) new Node[threshold];
+    public SortedList(int size) {
+        loadFactor = DEFAULT_LOAD_FACTOR;
+        threshold = tableSizeFor(size);
     }
 
     @SuppressWarnings({"unchecked", "CopyConstructorMissesField"})
     public SortedList(SortedList<E> other) {
         this.threshold = other.threshold;
-        this.table = (Node<E>[]) new Node[threshold];
+        this.table = (Node<E>[]) new Node[other.table.length];
+        this.loadFactor = other.loadFactor;
         this.comparator = other.comparator;
 
         this.addAll(other);
@@ -61,21 +68,170 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
     // Internal mapping methods
 
     private int hash(Object item) {
-        return hash(item, false);
+        return item.hashCode();
     }
 
-    protected int hash(Object item, boolean suppress) {
-        int hash = item.hashCode();
-
-        if (!suppress && (hash < 0 || hash >= threshold))
-            throw new IllegalHashException();
-
-        return hash;
+    private int tableSizeFor(int capacity) {
+        int n = capacity - 1;
+        n |= n >>> 1;
+        n |= n >>> 2;
+        n |= n >>> 4;
+        n |= n >>> 8;
+        n |= n >>> 16;
+        return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
-    private Node<E> getNode(E e) {
-        int hash = hash(e);
-        return table[hash];
+    private Node<E> getNode(Object item) {
+        if (isEmpty())
+            return null;
+
+        int hash = hash(item);
+        int index = hash & (table.length - 1);
+        Node<E> node = table[index];
+
+        if (node != null) {
+            do {
+                if (hash == node.hash && Objects.equals(node.item, item))
+                    return node;
+            } while ((node = node._2d) != null);
+        }
+
+        return null;
+    }
+
+    private Node<E> removeTable(E item) {
+        if (isEmpty())
+            return null;
+
+        int hash = hash(item);
+        int index = hash & (table.length - 1);
+        Node<E> node = table[index];
+        Node<E> before;
+
+        if (node == null) {
+            return null;
+        } else if (hash == node.hash && Objects.equals(item, node.item)) {
+            table[index] = node._2d;
+            size--;
+            return node;
+        } else if ((before = node._2d) == null) {
+            return null;
+        } else {
+            do {
+                if (hash == node.hash && Objects.equals(node.item, item)) {
+                    before._2d = node._2d;
+                    size--;
+                    return node;
+                }
+
+                before = node;
+            } while ((node = node._2d) != null);
+            return null;
+        }
+    }
+
+    public void addTable(Node<E> node) {
+        if (table == null)
+            resize();
+
+        int index = node.hash & (table.length - 1);
+        Node<E> bucket = table[index];
+        if (bucket == null)
+            table[index] = node;
+        else {
+            Node<E> temp;
+            if (bucket.hash == node.hash && Objects.equals(node.item, bucket.item))
+                temp = node;
+            else {
+                while (true) {
+                    if ((temp = bucket._2d) == null) {
+                        bucket._2d = node;
+                        break;
+                    }
+                    if (node.hash == temp.hash && Objects.equals(node.item, temp.item))
+                        break;
+
+                    bucket = temp;
+                }
+            }
+            if (temp != null) {
+                throw new UnsupportedOperationException("Node replacement");
+            }
+        }
+
+        if (++size > threshold)
+            resize();
+    }
+
+    private void resize() {
+        Node<E>[] oldTab = table;
+        int oldCap = (oldTab == null) ? 0 : oldTab.length;
+        int oldThr = threshold;
+        int newCap, newThr = 0;
+        if (oldCap > 0) {
+            if (oldCap >= MAXIMUM_CAPACITY) {
+                threshold = Integer.MAX_VALUE;
+                return;
+            }
+            else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
+                    oldCap >= DEFAULT_INITIAL_CAPACITY)
+                newThr = oldThr << 1; // double threshold
+        }
+        else if (oldThr > 0) // initial capacity was placed in threshold
+            newCap = oldThr;
+        else {               // zero initial threshold signifies using defaults
+            newCap = DEFAULT_INITIAL_CAPACITY;
+            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+        }
+        if (newThr == 0) {
+            float ft = (float)newCap * loadFactor;
+            newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
+                    (int)ft : Integer.MAX_VALUE);
+        }
+        threshold = newThr;
+        @SuppressWarnings("unchecked")
+        Node<E>[] newTab = (Node<E>[]) new Node[newCap];
+        table = newTab;
+        if (oldTab != null) {
+            for (int j = 0; j < oldCap; ++j) {
+                Node<E> node;
+                if ((node = oldTab[j]) != null) {
+                    oldTab[j] = null;
+                    if (node._2d == null)
+                        newTab[node.hash & (newCap - 1)] = node;
+                    else {
+                        Node<E> loHead = null, loTail = null;
+                        Node<E> hiHead = null, hiTail = null;
+                        Node<E> next;
+                        do {
+                            next = node._2d;
+                            if ((node.hash & oldCap) == 0) {
+                                if (loTail == null)
+                                    loHead = node;
+                                else
+                                    loTail._2d = node;
+                                loTail = node;
+                            }
+                            else {
+                                if (hiTail == null)
+                                    hiHead = node;
+                                else
+                                    hiTail._2d = node;
+                                hiTail = node;
+                            }
+                        } while ((node = next) != null);
+                        if (loTail != null) {
+                            loTail._2d = null;
+                            newTab[j] = loHead;
+                        }
+                        if (hiTail != null) {
+                            hiTail._2d = null;
+                            newTab[j + oldCap] = hiHead;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Internal Linking methods
@@ -89,8 +245,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
         else
             first.before = head;
 
-        table[head.hash] = head;
-        size++;
+        addTable(head);
         return head;
     }
 
@@ -103,8 +258,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
         else
             last.after = tail;
 
-        table[tail.hash] = tail;
-        size++;
+        addTable(tail);
         return tail;
     }
 
@@ -117,8 +271,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
         Node<E> newNode = new Node<>(before, item, hash(item), node);
         before.after = node.before = newNode;
 
-        table[newNode.hash] = newNode;
-        size++;
+        addTable(newNode);
         return newNode;
     }
 
@@ -134,8 +287,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
             first.after.before = null;
         }
 
-        table[head.hash] = null;
-        size--;
+        removeTable(first.item);
         return first.item;
     }
 
@@ -151,8 +303,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
             last.before.after = null;
         }
 
-        table[tail.hash] = null;
-        size--;
+        removeTable(last.item);
         return last.item;
     }
 
@@ -174,16 +325,14 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
             node.after = null;
         }
 
-        table[node.hash] = null;
-        size--;
+        removeTable(node.item);
         return node.item;
     }
 
     private Node<E> getNode(int index) {
         Node<E> node;
 
-        int half = size >> 1;
-        if (index < half) {
+        if (index < size >> 1) {
             node = head;
             for (int i = 0; i < index; i++)
                 node = node.after;
@@ -209,11 +358,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
 
     @Override
     public boolean contains(Object o) {
-        int hash = hash(o, true);
-        if (hash < 0 || hash >= threshold)
-            return false;
-        else
-            return table[hash] != null;
+        return getNode(o) != null;
     }
 
     @Override
@@ -227,8 +372,7 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
 
     @Override
     public boolean remove(Object o) {
-        int hash = hash(o);
-        Node<E> node = table[hash];
+        Node<E> node = getNode(o);
 
         if (node == null)
             return false;
@@ -283,9 +427,10 @@ public class SortedList<E> extends AbstractSet<E> implements Set<E>, Deque<E> {
         if (comparator == null)
             comparator = (Comparator<E>) Comparator.naturalOrder();
 
-        if (isEmpty())
+        if (isEmpty()) {
             linkFirst(item);
-        else if (contains(item))
+            return;
+        } else if (contains(item))
             return;
 
         Node<E> node = head;

@@ -3,7 +3,7 @@ package me.cjcrafter.neat.genome;
 import me.cjcrafter.neat.file.Serializable;
 import org.json.simple.JSONObject;
 
-public class Gene implements Serializable {
+public abstract class Gene implements Serializable {
 
     protected int id;
 
@@ -33,9 +33,5 @@ public class Gene implements Serializable {
     }
 
     @Override
-    public String toString() {
-        return "Gene{" +
-                "id=" + id +
-                '}';
-    }
+    public abstract String toString();
 }

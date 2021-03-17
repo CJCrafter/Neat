@@ -57,10 +57,12 @@ public class DoubleMap<K> implements Serializable {
     private Node<K> getNode(Object key) {
         Node<K> node = table[hash(key) & (threshold - 1)];
 
-        do {
-            if (Objects.equals(node.key, key))
-                return node;
-        } while ((node = node.next) != null);
+        if (node != null) {
+            do {
+                if (Objects.equals(node.key, key))
+                    return node;
+            } while ((node = node.next) != null);
+        }
 
         return null;
     }

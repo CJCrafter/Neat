@@ -24,9 +24,6 @@ class SortedListTest {
     public void testData() {
         Assertions.assertEquals(list_1.size(), 10);
         Assertions.assertEquals(list_2.size(), 6);
-
-        Assertions.assertEquals(list_1.getThreshold(), 16);
-        Assertions.assertEquals(list_2.getThreshold(), 32);
     }
 
     @Test
