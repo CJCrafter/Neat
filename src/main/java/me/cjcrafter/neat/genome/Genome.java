@@ -103,9 +103,9 @@ public class Genome implements Serializable {
         weightDiff /= Math.max(similar, 1);
         int excess = g1.connections.size() - index;
 
-        return neat.getProperty(Neat.EXCESS_FACTOR_PROPERTY) * excess / n
-                + neat.getProperty(Neat.DISJOINT_FACTOR_PROPERTY) * disjoint / n
-                + neat.getProperty(Neat.WEIGHT_DIFFERENCE_PROPERTY) * weightDiff;
+        return neat.getProperty("excessFactor") * excess / n
+                + neat.getProperty("disjointFactor") * disjoint / n
+                + neat.getProperty("weightFactor") * weightDiff;
     }
 
     public void mutate(Mutation mutation) {

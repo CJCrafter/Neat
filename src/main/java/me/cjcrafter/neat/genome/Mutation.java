@@ -7,42 +7,48 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public enum Mutation {
 
-    RANDOM_WEIGHT(0.002) {
+    RANDOM_WEIGHT {
         @Override
-        public void mutate(Genome genome) {
+        public boolean mutate(Genome genome) {
             if (genome.getConnections().isEmpty())
-                return;
+                return false;
 
             ConnectionGene connection = genome.getConnections().getRandomElement();
             connection.setWeight((ThreadLocalRandom.current().nextDouble() * 2 - 1)
-                    * genome.getNeat().getProperty(Neat.RANDOM_WEIGHT_STRENGTH_PROPERTY));
+                    * genome.getNeat().getProperty("randomWeightStrength"));
+            return true;
         }
-    }, WEIGHT_SHIFT(0.002) {
+    },
+    WEIGHT_SHIFT {
         @Override
-        public void mutate(Genome genome) {
+        public boolean mutate(Genome genome) {
             if (genome.getConnections().isEmpty())
-                return;
+                return false;
 
             ConnectionGene connection = genome.getConnections().getRandomElement();
             connection.setWeight(connection.getWeight() + (ThreadLocalRandom.current().nextDouble() * 2 - 1)
-                    * genome.getNeat().getProperty(Neat.SHIFT_WEIGHT_STRENGTH_PROPERTY));
+                    * genome.getNeat().getProperty("shiftWeightStrength"));
+            return true;
         }
-    }, TOGGLE(0.0) {
+    },
+    TOGGLE {
         @Override
-        public void mutate(Genome genome) {
+        public boolean mutate(Genome genome) {
             if (genome.getConnections().isEmpty())
-                return;
+                return false;
 
             ConnectionGene connection = genome.getConnections().getRandomElement();
             connection.setEnabled(!connection.isEnabled());
+            return true;
         }
-    }, ADD_LINK(0.01) {
+    },
+    ADD_LINK {
         @Override
-        public void mutate(Genome genome) {
+        public boolean mutate(Genome genome) {
 
-            // Try to mutate a new link 100 times. 100 times is most likely
+            // Try to mutate a new link 50 times. 50 times is most likely
             // always going to be enough tries to mutate a link.
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 50; i++) {
                 SortedList<NodeGene> nodes = genome.getNodes();
 
                 NodeGene a = nodes.getRandomElement();
@@ -67,17 +73,19 @@ public enum Mutation {
                 // add it if it does not yet exist
                 connection = genome.getNeat().newConnectionGene(connection.getFrom(), connection.getTo());
                 connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1)
-                        * genome.getNeat().getProperty(Neat.RANDOM_WEIGHT_STRENGTH_PROPERTY));
+                        * genome.getNeat().getProperty("randomWeightStrength"));
 
                 genome.getConnections().addSorted(connection);
-                break;
+                return true;
             }
+            return false;
         }
-    }, ADD_NODE(0.003) {
+    },
+    ADD_NODE {
         @Override
-        public void mutate(Genome genome) {
+        public boolean mutate(Genome genome) {
             if (genome.getConnections().isEmpty())
-                return;
+                return false;
 
             ConnectionGene connection = genome.getConnections().getRandomElement();
 
@@ -85,15 +93,15 @@ public enum Mutation {
             NodeGene to = connection.getTo();
             NodeGene middle;
 
-            //int replaceId = genome.getNeat().getReplaceIndex(from, to);
-            //if (replaceId == -1) {
+            int replaceId = genome.getNeat().getReplaceIndex(from, to);
+            if (replaceId == 0) {
                 middle = genome.getNeat().newNode();
                 middle.setX((from.getX() + to.getX()) / 2);
                 middle.setY((from.getY() + to.getY()) / 2);
-            //    genome.getNeat().setReplaceIndex(from, to, middle.getId());
-            //} else {
-            //    middle = genome.getNeat().getNode(replaceId);
-            //}
+                genome.getNeat().setReplaceIndex(from, to, middle.getId());
+            } else {
+                middle = genome.getNeat().getNode(replaceId);
+            }
 
             ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
             ConnectionGene b = genome.getNeat().newConnectionGene(middle, to);
@@ -107,29 +115,38 @@ public enum Mutation {
             genome.getConnections().add(b);
 
             genome.getNodes().add(middle);
+            return true;
         }
-    }, MUTATE(0.0) {
+    },
+    MUTATE {
         @Override
-        public void mutate(Genome genome) {
-            for (int i = 0; i < 10; i++) {
-                if (ADD_LINK.chance > ThreadLocalRandom.current().nextDouble())
-                    ADD_LINK.mutate(genome);
-                if (ADD_NODE.chance > ThreadLocalRandom.current().nextDouble())
-                    ADD_NODE.mutate(genome);
-                if (RANDOM_WEIGHT.chance > ThreadLocalRandom.current().nextDouble())
-                    RANDOM_WEIGHT.mutate(genome);
-                if (WEIGHT_SHIFT.chance > ThreadLocalRandom.current().nextDouble())
-                    WEIGHT_SHIFT.mutate(genome);
-                if (TOGGLE.chance > ThreadLocalRandom.current().nextDouble())
-                    TOGGLE.mutate(genome);
-            }
+        public boolean mutate(Genome genome) {
+            Neat neat = genome.getNeat();
+            double nodeChance = neat.getProperty("mutateNode") - neat.getProperty("mutateNodeSizeReduction")
+                    * (genome.getNodes().size() - neat.getInputNodes() - neat.getOutputNodes());
+            double linkChance = neat.getProperty("mutateLink") - neat.getProperty("mutateLinkSizeReduction")
+                    * genome.getConnections().size();
+
+            boolean isMutated = false;
+
+            if (linkChance > ThreadLocalRandom.current().nextDouble())
+                isMutated = ADD_LINK.mutate(genome);
+            if (nodeChance > ThreadLocalRandom.current().nextDouble())
+                isMutated |= ADD_NODE.mutate(genome);
+            if (neat.getProperty("mutateRandomWeight") > ThreadLocalRandom.current().nextDouble())
+                isMutated |= RANDOM_WEIGHT.mutate(genome);
+            if (neat.getProperty("mutateShiftWeight") > ThreadLocalRandom.current().nextDouble())
+                isMutated |= WEIGHT_SHIFT.mutate(genome);
+            if (neat.getProperty("mutateToggleLink") > ThreadLocalRandom.current().nextDouble())
+                isMutated |= TOGGLE.mutate(genome);
+
+            return isMutated;
         }
     };
 
     public final String name;
-    public final double chance;
 
-    Mutation(double chance) {
+    Mutation() {
         String[] split = name().toLowerCase().split("_");
 
         StringBuilder builder = new StringBuilder();
@@ -139,8 +156,7 @@ public enum Mutation {
             builder.append(" ");
         }
         this.name = builder.substring(0, builder.length() - 1);
-        this.chance = chance;
     }
 
-    public abstract void mutate(Genome genome);
+    public abstract boolean mutate(Genome genome);
 }

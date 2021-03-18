@@ -10,9 +10,10 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Species {
 
-    private List<Client> clients;
+    private final List<Client> clients;
     private Client base;
     private double score;
+    private int generations;
 
     public Species(Client base) {
         if (base == null)
@@ -49,7 +50,7 @@ public class Species {
 
     public boolean matches(Client client) {
         double distance = base.getGenome().distance(client.getGenome());
-        double max = getNeat().getProperty(Neat.SPECIES_DISTANCE_PROPERTY);
+        double max = getNeat().getProperty("speciesDistance");
         return distance < max;
     }
 
@@ -81,6 +82,7 @@ public class Species {
 
         clients.add(base);
         score = 0;
+        generations++;
     }
 
     public void kill() {
@@ -90,6 +92,10 @@ public class Species {
     }
 
     public void kill(double percentage) {
+        if (generations < getNeat().getProperty("gracePeriod")) {
+            return;
+        }
+
         clients.sort(null);
 
         int count = 0;

@@ -196,6 +196,10 @@ public class DoubleMap<K> implements Serializable {
 
     // Iterators
 
+    public Iterator<Map.Entry<K, Double>> iterator() {
+        return new EntryIterator();
+    }
+
     private abstract class HashIterator {
         Node<K> next;
         Node<K> current;
@@ -243,6 +247,7 @@ public class DoubleMap<K> implements Serializable {
                 @Override public K getKey()                    { return node.key; }
                 @Override public Double getValue()             { return node.value; }
                 @Override public Double setValue(Double value) { throw new UnsupportedOperationException(); }
+                @Override public String toString()             { return node.toString(); }
             };
         }
     }
@@ -266,5 +271,19 @@ public class DoubleMap<K> implements Serializable {
     @Override
     public void serialize(JSONObject data) {
 
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder("{\n");
+
+        EntryIterator iterator = new EntryIterator();
+        while (iterator.hasNext()) {
+            Map.Entry<K, Double> entry = iterator.next();
+            builder.append("\t").append(entry).append(",\n");
+        }
+
+        builder.setLength(builder.length() - 2);
+        return builder.append("\n }").toString();
     }
 }

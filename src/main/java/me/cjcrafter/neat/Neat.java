@@ -29,14 +29,6 @@ public class Neat implements Serializable {
     public static final int MAX_NODE_BITS = 8;
     public static final int MAX_NODES = 1 << MAX_NODE_BITS;
 
-    public static final String SPECIES_DISTANCE_PROPERTY = "speciesDistance";
-    public static final String SURVIVAL_CHANCE_PROPERTY = "survivalChance";
-    public static final String EXCESS_FACTOR_PROPERTY = "excessFactor";
-    public static final String DISJOINT_FACTOR_PROPERTY = "disjointFactor";
-    public static final String WEIGHT_DIFFERENCE_PROPERTY = "weightDifference";
-    public static final String RANDOM_WEIGHT_STRENGTH_PROPERTY = "randomWeightStrength";
-    public static final String SHIFT_WEIGHT_STRENGTH_PROPERTY = "shiftWeightStrength";
-
     private DoubleMap<String> properties;
 
     private Map<ConnectionGene, ConnectionGene> connectionCache;
@@ -67,13 +59,22 @@ public class Neat implements Serializable {
         this.maxClients = clients;
 
         properties = new DoubleMap<>();
-        properties.put(SPECIES_DISTANCE_PROPERTY, 3.0);
-        properties.put(SURVIVAL_CHANCE_PROPERTY, 0.70);
-        properties.put(EXCESS_FACTOR_PROPERTY, 2.0);
-        properties.put(DISJOINT_FACTOR_PROPERTY, 2.0);
-        properties.put(WEIGHT_DIFFERENCE_PROPERTY, 1.0);
-        properties.put(RANDOM_WEIGHT_STRENGTH_PROPERTY, 1.0);
-        properties.put(SHIFT_WEIGHT_STRENGTH_PROPERTY, 0.3);
+        properties.put("speciesDistance", 0.9);
+        properties.put("survivalChance", 0.70);
+        properties.put("excessFactor", 2.0);
+        properties.put("disjointFactor", 2.0);
+        properties.put("weightFactor", 1.0);
+        properties.put("randomWeightStrength", 0.4);
+        properties.put("shiftWeightStrength", 0.12);
+        properties.put("gracePeriod", 10.0);
+
+        properties.put("mutateRandomWeight", 0.002);
+        properties.put("mutateShiftWeight", 0.2);
+        properties.put("mutateToggleLink", 0.0);
+        properties.put("mutateLink", 0.001);
+        properties.put("mutateNode", 0.0015);
+        properties.put("mutateLinkSizeReduction", getProperty("mutateLink") / 100.0);
+        properties.put("mutateNodeSizeReduction", getProperty("mutateNode") / 10.0);
 
         // Sets the input node layer. The number of input nodes will not change
         // unless the reset method is called. The input nodes are always
@@ -150,14 +151,14 @@ public class Neat implements Serializable {
         return connection;
     }
 
-    //public int getReplaceIndex(NodeGene from, NodeGene to) {
-    //    ConnectionGene connection = connectionCache.get(new ConnectionGene(from, to));
-    //    return connection == null ? -1 : connection.getReplaceId();
-    //}
-//
-    //public void setReplaceIndex(NodeGene from, NodeGene to, int id) {
-    //    connectionCache.get(new ConnectionGene(from, to)).setReplaceId(id);
-    //}
+    public int getReplaceIndex(NodeGene from, NodeGene to) {
+        ConnectionGene connection = connectionCache.get(new ConnectionGene(from, to));
+        return connection == null ? 0 : connection.getReplaceId();
+    }
+
+    public void setReplaceIndex(NodeGene from, NodeGene to, int id) {
+        connectionCache.get(new ConnectionGene(from, to)).setReplaceId(id);
+    }
 
     public NodeGene getNode(int id) {
         if (id < 0 || id > nodeCache.size()) {
@@ -169,9 +170,15 @@ public class Neat implements Serializable {
         }
     }
 
+    private static final Timer evalTimer = new Timer();
+    private static final Timer killTimer = new Timer();
+    private static final Timer breedTimer = new Timer();
+
     public void evolve() {
 
         species.forEach(Species::reset);
+
+        evalTimer.start();
 
         // We need to reset all of the species, and resort all of the clients
         // into their species. If no such species exists, we create new ones.
@@ -190,6 +197,9 @@ public class Neat implements Serializable {
             }
         }
 
+        evalTimer.stop();
+        killTimer.start();
+
         // Evaluate the value of a species, then kill of it's lowest members.
         // If a species becomes to small, it dies out.
         Iterator<Species> iterator = species.iterator();
@@ -197,13 +207,16 @@ public class Neat implements Serializable {
             Species next = iterator.next();
 
             next.evaluate();
-            next.kill(1.0 - getProperty(SURVIVAL_CHANCE_PROPERTY));
+            next.kill(1.0 - getProperty("survivalChance"));
 
             if (next.size() <= 1) {
                 next.kill();
                 iterator.remove();
             }
         }
+
+        killTimer.stop();
+        breedTimer.start();
 
         ProbabilityMap<Species> random = new ProbabilityMap<>();
         random.putAll(species, Species::getScore);
@@ -216,6 +229,8 @@ public class Neat implements Serializable {
                 species.put(client, true);
             }
         }
+
+        breedTimer.stop();
     }
 
     public void temp() {
@@ -228,11 +243,10 @@ public class Neat implements Serializable {
         };
 
         Timer evolveTimer = new Timer();
-        double evolveTime = 0.0;
         Timer fitnessTimer = new Timer();
-        double fitnessTime = 0.0;
 
-        for (int i = 0; i < 10000; i++) {
+        int bound = 30000;
+        for (int i = 0; i < bound; i++) {
             fitnessTimer.start();
             for (Client client : clients) {
                 double incorrectness = 0.0;
@@ -243,21 +257,25 @@ public class Neat implements Serializable {
 
                 client.setScore(4.0 - incorrectness);
             }
-            fitnessTime += fitnessTimer.stop();
+            fitnessTimer.stop();
 
             evolveTimer.start();
             evolve();
-            evolveTime += evolveTimer.stop();
+            evolveTimer.stop();
 
-
-            if (i % 1000 == 0) {
-                System.out.println(i + " iterations completed");
-                System.out.println("\tEvolution: " + evolveTime + "s");
-                System.out.println("\tFitness: " + fitnessTime + "s");
+            if (i != 0 && i % 1000 == 0) {
+                System.out.println();
+                System.out.println(new BigDecimal(i / (double) bound * 100.0, new MathContext(2)) + "% complete");
+                System.out.println("\tFitness:   " + fitnessTimer.getElapsedTime());
+                System.out.println("\tEvolution: " + evolveTimer.getElapsedTime());
+                System.out.println("\t\tEvaluate: " + evalTimer.getElapsedTime());
+                System.out.println("\t\tKill:     " + killTimer.getElapsedTime());
+                System.out.println("\t\tBreed:    " + breedTimer.getElapsedTime());
+                System.out.println();
+                System.out.println(debugGenome());
                 System.out.println();
                 printSpecies();
             }
-
         }
 
         clients.sort(Comparator.comparingDouble(Client::getScore));
@@ -287,6 +305,22 @@ public class Neat implements Serializable {
                 e.printStackTrace();
             }
         }
+    }
+
+    private String debugGenome() {
+        int nodes = 0;
+        int connections = 0;
+
+        for (Client client : clients) {
+            Genome genome = client.getGenome();
+            nodes += genome.getNodes().size();
+            connections += genome.getConnections().size();
+        }
+
+        nodes /= clients.size();
+        connections /= clients.size();
+
+        return "Avg Nodes: " + nodes + "; Avg Connections: " + connections;
     }
 
     private static class Function {
