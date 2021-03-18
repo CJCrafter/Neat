@@ -235,6 +235,8 @@ public class Neat implements Serializable {
 
     public void temp() {
 
+        System.out.println(properties + "\n");
+
         Function[] functions = new Function[]{
                 new Function(0, 0),
                 new Function(1, 0),

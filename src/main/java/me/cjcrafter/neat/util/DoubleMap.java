@@ -48,6 +48,12 @@ public class DoubleMap<K> implements Serializable {
         this.loadFactor = DEFAULT_LOAD_FACTOR;
     }
 
+    public DoubleMap(int cap) {
+        this();
+
+        this.threshold = cap;
+    }
+
     // Internal mapping methods
 
     private int hash(Object key) {
@@ -55,7 +61,7 @@ public class DoubleMap<K> implements Serializable {
     }
 
     private Node<K> getNode(Object key) {
-        Node<K> node = table[hash(key) & (threshold - 1)];
+        Node<K> node = table[hash(key) & (table.length - 1)];
 
         if (node != null) {
             do {
