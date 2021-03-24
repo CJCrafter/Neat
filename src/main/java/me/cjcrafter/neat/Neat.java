@@ -11,18 +11,25 @@ import me.cjcrafter.neat.util.DoubleMap;
 import me.cjcrafter.neat.util.ProbabilityMap;
 import me.cjcrafter.neat.util.Timer;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 public class Neat implements Serializable {
 
@@ -40,6 +47,8 @@ public class Neat implements Serializable {
     private int outputNodes;
     private int maxClients;
 
+    private int[] hiddenLayers;
+
     public Neat() {
 
     }
@@ -48,6 +57,7 @@ public class Neat implements Serializable {
         init(inputNodes, outputNodes, clients);
     }
 
+    @SuppressWarnings("all")
     public void init(int inputNodes, int outputNodes, int clients) {
         this.connectionCache = new HashMap<>();
         this.nodeCache = new ArrayList<>();
@@ -58,23 +68,26 @@ public class Neat implements Serializable {
         this.outputNodes = outputNodes;
         this.maxClients = clients;
 
-        properties = new DoubleMap<>();
-        properties.put("speciesDistance", 0.9);
-        properties.put("survivalChance", 0.70);
-        properties.put("excessFactor", 2.0);
-        properties.put("disjointFactor", 2.0);
-        properties.put("weightFactor", 1.0);
-        properties.put("randomWeightStrength", 0.4);
-        properties.put("shiftWeightStrength", 0.12);
-        properties.put("gracePeriod", 10.0);
+        try {
+            JSONParser parser = new JSONParser();
+            InputStream resource = getClass().getClassLoader().getResourceAsStream("initial-structure.json");
+            Map map = (Map) parser.parse(new InputStreamReader(resource));
 
-        properties.put("mutateRandomWeight", 0.002);
-        properties.put("mutateShiftWeight", 0.2);
-        properties.put("mutateToggleLink", 0.0);
-        properties.put("mutateLink", 0.001);
-        properties.put("mutateNode", 0.0015);
-        properties.put("mutateLinkSizeReduction", getProperty("mutateLink") / 100.0);
-        properties.put("mutateNodeSizeReduction", getProperty("mutateNode") / 10.0);
+            hiddenLayers = ((List<Long>) map.get("layers")).stream().mapToInt(Long::intValue).toArray();
+        } catch (ParseException | IOException e) {
+            e.printStackTrace();
+        }
+
+        properties = new DoubleMap<>();
+        try {
+            JSONParser parser = new JSONParser();
+            InputStream resource = getClass().getClassLoader().getResourceAsStream("default-properties.json");
+            Map map = (Map) parser.parse(new InputStreamReader(resource));
+            JSONObject json = new JSONObject(map);
+            properties.serialize(json);
+        } catch (ParseException | IOException e) {
+            e.printStackTrace();
+        }
 
         // Sets the input node layer. The number of input nodes will not change
         // unless the reset method is called. The input nodes are always
@@ -92,6 +105,15 @@ public class Neat implements Serializable {
             NodeGene node = newNode();
             node.setX(0.9);
             node.setY((i + 1.0) / (outputNodes + 1.0));
+        }
+
+        for (int i = 0; i < hiddenLayers.length; i++) {
+            int count = hiddenLayers[i];
+            for (int j = 0; j < count; j++) {
+                NodeGene node = newNode();
+                node.setX(0.8 / (hiddenLayers.length + 1) * (i + 1) + 0.1);
+                node.setY((j + 1.0) / (count + 1.0));
+            }
         }
 
         for (int i = 0; i < maxClients; i++) {
@@ -120,17 +142,18 @@ public class Neat implements Serializable {
     public Genome newGenome() {
         Genome genome = new Genome(this);
 
-        int visibleNodes = inputNodes + outputNodes;
-        for (int i = 0; i < visibleNodes; i++) {
+        int nodes = inputNodes + outputNodes + IntStream.of(hiddenLayers).sum();
+        for (int i = 0; i < nodes; i++) {
             NodeGene node = getNode(i);
             genome.add(node);
         }
+
 
         return genome;
     }
 
     public NodeGene newNode() {
-        NodeGene node = new NodeGene(nodeCache.size() + 1);
+        NodeGene node = new NodeGene(nodeCache.size());
         nodeCache.add(node);
         return node;
     }
@@ -184,9 +207,11 @@ public class Neat implements Serializable {
         // into their species. If no such species exists, we create new ones.
         for (Client client : clients) {
             if (client.getSpecies() == null) {
-                for (Species species : species) {
-                    if (species.put(client)) {
-                        break;
+                if (client.parentSpecies == null || !client.parentSpecies.put(client)) {
+                    for (Species species : species) {
+                        if (species.put(client)) {
+                            break;
+                        }
                     }
                 }
 
@@ -237,27 +262,32 @@ public class Neat implements Serializable {
 
         System.out.println(properties + "\n");
 
-        Function[] functions = new Function[]{
+        List<Function> functions = new ArrayList<>(Arrays.asList(
                 new Function(0, 0),
                 new Function(1, 0),
                 new Function(0, 1),
                 new Function(1, 1)
-        };
+        ));
 
         Timer evolveTimer = new Timer();
         Timer fitnessTimer = new Timer();
 
-        int bound = 30000;
+        int bound = 10000;
+        outer:
         for (int i = 0; i < bound; i++) {
             fitnessTimer.start();
             for (Client client : clients) {
                 double incorrectness = 0.0;
+                Collections.shuffle(functions);
                 for (Function function : functions) {
                     double output = client.getCalculator().calculate(function.input1, function.input2)[0];
                     incorrectness += Math.abs(function.output - output);
                 }
 
                 client.setScore(4.0 - incorrectness);
+                if (client.getScore() == 4.0) {
+                    break outer;
+                }
             }
             fitnessTimer.stop();
 
@@ -265,7 +295,9 @@ public class Neat implements Serializable {
             evolve();
             evolveTimer.stop();
 
-            if (i != 0 && i % 1000 == 0) {
+            if (i != 0 && i % 500 == 0) {
+                System.out.println();
+                printSpecies();
                 System.out.println();
                 System.out.println(new BigDecimal(i / (double) bound * 100.0, new MathContext(2)) + "% complete");
                 System.out.println("\tFitness:   " + fitnessTimer.getElapsedTime());
@@ -275,8 +307,6 @@ public class Neat implements Serializable {
                 System.out.println("\t\tBreed:    " + breedTimer.getElapsedTime());
                 System.out.println();
                 System.out.println(debugGenome());
-                System.out.println();
-                printSpecies();
             }
         }
 
@@ -297,14 +327,17 @@ public class Neat implements Serializable {
         }
 
         Frame frame = new Frame();
+        frame.setGenome(client.getGenome());
 
-        int index = 0;
-        while (true) {
-            frame.setGenome(clients.get(index++ % clients.size()).getGenome());
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        if (client.getScore() != 4.0) {
+            int index = 0;
+            while (true) {
+                frame.setGenome(clients.get(index++ % clients.size()).getGenome());
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -337,10 +370,10 @@ public class Neat implements Serializable {
     }
 
     public void printSpecies() {
-        System.out.println("------------------------------");
-        System.out.println("Score        | Clients");
+        System.out.println("-----------------------");
+        System.out.println(" Score       | Clients ");
         for (Species species : species) {
-            System.out.printf("%-13s|  %-15s%n", round(species.getScore()), species.size());
+            System.out.printf("%-13s| %-9s%n", round(species.getScore()), species.size());
         }
     }
 

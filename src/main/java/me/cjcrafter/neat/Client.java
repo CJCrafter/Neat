@@ -13,6 +13,8 @@ public class Client implements Comparable<Client>, Serializable {
     private double score;
     private Species species;
 
+    public Species parentSpecies;
+
     public Client() {
     }
 
@@ -49,6 +51,7 @@ public class Client implements Comparable<Client>, Serializable {
 
     public void setSpecies(Species species) {
         this.species = species;
+        this.parentSpecies = species;
     }
 
     public void mutate(Mutation mutation) {

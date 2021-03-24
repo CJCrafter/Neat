@@ -92,10 +92,6 @@ public class Species {
     }
 
     public void kill(double percentage) {
-        if (generations < getNeat().getProperty("gracePeriod")) {
-            return;
-        }
-
         clients.sort(null);
 
         int count = 0;

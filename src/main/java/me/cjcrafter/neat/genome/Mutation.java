@@ -101,6 +101,9 @@ public enum Mutation {
                 genome.getNeat().setReplaceIndex(from, to, middle.getId());
             } else {
                 middle = genome.getNeat().getNode(replaceId);
+                if (middle.getX() == 0.0) {
+                    System.out.println("ree");
+                }
             }
 
             ConnectionGene a = genome.getNeat().newConnectionGene(from, middle);
@@ -122,10 +125,8 @@ public enum Mutation {
         @Override
         public boolean mutate(Genome genome) {
             Neat neat = genome.getNeat();
-            double nodeChance = neat.getProperty("mutateNode") - neat.getProperty("mutateNodeSizeReduction")
-                    * (genome.getNodes().size() - neat.getInputNodes() - neat.getOutputNodes());
-            double linkChance = neat.getProperty("mutateLink") - neat.getProperty("mutateLinkSizeReduction")
-                    * genome.getConnections().size();
+            double nodeChance = neat.getProperty("mutateNode");
+            double linkChance = neat.getProperty("mutateLink");
 
             boolean isMutated = false;
 

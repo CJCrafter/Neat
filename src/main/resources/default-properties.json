@@ -1,0 +1,22 @@
+{
+  "speciesDistance": 4.0,
+  "excessFactor": 2.0,
+  "disjointFactor": 2.0,
+  "weightFactor": 1.0,
+
+  "randomWeightStrength": 1.0,
+  "shiftWeightStrength": 0.025,
+
+  "minProgress": 0.01,
+  "generationsPerCheck": 50.0,
+  "maxFitness": 4.0,
+  "minFitnessThreshold": 1.0,
+
+  "mutateRandomWeight": 0.005,
+  "mutateShiftWeight": 0.5,
+  "mutateToggleLink": 0.0,
+  "mutateLink": 0.015,
+  "mutateNode": 0.0004,
+
+  "survivalChance": 0.25
+}

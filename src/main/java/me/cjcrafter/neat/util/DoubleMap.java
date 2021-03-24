@@ -275,8 +275,13 @@ public class DoubleMap<K> implements Serializable {
     }
 
     @Override
+    @SuppressWarnings({"all"})
     public void serialize(JSONObject data) {
-
+        Iterator<Map.Entry> iterator = data.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry entry = iterator.next();
+            put((K) entry.getKey(), ((Double) entry.getValue()).doubleValue());
+        }
     }
 
     @Override

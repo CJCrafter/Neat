@@ -33,20 +33,6 @@ public class ProbabilityMap<E> extends AbstractCollection<E> implements Set<E> {
             return weight;
         }
 
-        public double setWeight(double weight) {
-            double diff = weight - this.weight;
-            modifyWeight(diff);
-            return diff;
-        }
-
-        private void modifyWeight(double diff) {
-            this.weight += diff;
-
-            if (next != null) {
-                next.modifyWeight(diff);
-            }
-        }
-
         public double getOffset() {
             return offset;
         }
@@ -81,17 +67,10 @@ public class ProbabilityMap<E> extends AbstractCollection<E> implements Set<E> {
         if (item == null)
             throw new IllegalArgumentException();
 
-        dummy.item = item;
-
-        if (map.containsKey(dummy)) {
-            Node<E> node = map.get(dummy);
-            total += node.setWeight(chance);
-        } else {
-            Node<E> node = new Node<>(item, chance, total);
-            node.next = map.ceilingKey(node);
-            map.put(node, node);
-            total += chance;
-        }
+        Node<E> node = new Node<>(item, chance, total);
+        node.next = map.ceilingKey(node);
+        map.put(node, node);
+        total += chance;
     }
 
     public <T extends E> void putAll(Collection<T> items, ToDoubleFunction<T> function) {
