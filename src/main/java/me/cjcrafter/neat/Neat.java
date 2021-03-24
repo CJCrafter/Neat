@@ -7,7 +7,7 @@ import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
 import me.cjcrafter.neat.genome.NodeGene;
 import me.cjcrafter.neat.ui.Frame;
-import me.cjcrafter.neat.util.DoubleMap;
+import me.cjcrafter.neat.util.primitive.DoubleMap;
 import me.cjcrafter.neat.util.ProbabilityMap;
 import me.cjcrafter.neat.util.Timer;
 import org.json.simple.JSONObject;

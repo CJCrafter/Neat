@@ -1,4 +1,4 @@
-package me.cjcrafter.neat.util;
+package me.cjcrafter.neat.util.primitive;
 
 import me.cjcrafter.neat.file.Serializable;
 import org.json.simple.JSONObject;
@@ -14,7 +14,7 @@ public class DoubleMap<K> implements Serializable {
     private static final int MAXIMUM_CAPACITY = 1 << 30;
     private static final float DEFAULT_LOAD_FACTOR = 0.75f;
 
-    private static class Node<K> {
+    private static class Node<K> extends DoubleEntry<K> {
 
         K key;
         double value;
@@ -28,14 +28,14 @@ public class DoubleMap<K> implements Serializable {
             this.hash = hash;
         }
 
-        void set(double value, int hash) {
-            this.value = value;
-            this.hash = hash;
-        }
+        @Override public K getKey() { return key; }
+        @Override public double getValue() { return value; }
 
         @Override
-        public String toString() {
-            return key + "=" + value;
+        public double setValue(double value) {
+            double old = this.value;
+            this.value = value;
+            return old;
         }
     }
 
@@ -144,7 +144,7 @@ public class DoubleMap<K> implements Serializable {
         }
     }
 
-    // Public Operations
+    // Query Operations
 
     public int size() {
         return size;
@@ -158,10 +158,12 @@ public class DoubleMap<K> implements Serializable {
         return getNode(key) != null;
     }
 
-    public double get(K key) {
+    public double get(Object key) {
         Node<K> node = getNode(key);
         return node == null ? 0.0 : node.value;
     }
+
+    // Modification Operations
 
     public double put(K key, double value) {
         if (table == null)
@@ -200,11 +202,39 @@ public class DoubleMap<K> implements Serializable {
         return 0.0;
     }
 
-    // Iterators
+    public double remove(Object key) {
+        int hash = hash(key);
+        int index = hash & table.length - 1;
+        Node<K> node = table[index];
 
-    public Iterator<Map.Entry<K, Double>> iterator() {
-        return new EntryIterator();
+        if (hash == node.hash && Objects.equals(key, node.key)) {
+            table[index] = node.next;
+            return node.value;
+        } else {
+            Node<K> temp;
+            while (true) {
+                if ((temp = node.next) == null)
+                    return 0.0;
+
+                if (hash == temp.hash && Objects.equals(key, temp.key))
+                    return temp.value;
+
+                node = temp;
+            }
+        }
     }
+
+    // Functional Interface Operations
+
+    public void forEach(BiDoubleConsumer<K> consumer) {
+        EntryIterator iterator = new EntryIterator();
+        while (iterator.hasNext()) {
+            DoubleEntry<K> entry = iterator.next();
+            consumer.accept(entry.getKey(), entry.getValue());
+        }
+    }
+
+    // Iterators
 
     private abstract class HashIterator {
         Node<K> next;
@@ -232,6 +262,11 @@ public class DoubleMap<K> implements Serializable {
             }
             return node;
         }
+
+        public final void remove() {
+            DoubleMap.this.remove(current.getKey());
+            current = null;
+        }
     }
 
     final class KeyIterator extends HashIterator
@@ -240,20 +275,19 @@ public class DoubleMap<K> implements Serializable {
     }
 
     final class ValueIterator extends HashIterator
-            implements Iterator<Double> {
-        public final Double next() { return nextNode().value; }
+            implements DoubleIterator {
+        public final double next() { return nextNode().value; }
     }
 
     final class EntryIterator extends HashIterator
-            implements Iterator<Map.Entry<K, Double>> {
+            implements Iterator<DoubleEntry<K>> {
 
-        public final Map.Entry<K, Double> next() {
-            return new Map.Entry<K, Double>() {
-                final Node<K> node = nextNode();
-                @Override public K getKey()                    { return node.key; }
-                @Override public Double getValue()             { return node.value; }
-                @Override public Double setValue(Double value) { throw new UnsupportedOperationException(); }
-                @Override public String toString()             { return node.toString(); }
+        public final DoubleEntry<K> next() {
+            return new DoubleEntry<K>() {
+                private final Node<K> node = nextNode();
+                @Override public K getKey() { return node.getKey(); }
+                @Override public double getValue() { return node.getValue(); }
+                @Override public double setValue(double value) { return node.setValue(value); }
             };
         }
     }
@@ -267,7 +301,7 @@ public class DoubleMap<K> implements Serializable {
 
         EntryIterator iterator = new EntryIterator();
         while (iterator.hasNext()) {
-            Map.Entry<K, Double> entry = iterator.next();
+            DoubleEntry<K> entry = iterator.next();
             json.put(entry.getKey(), entry.getValue());
         }
 
@@ -290,7 +324,7 @@ public class DoubleMap<K> implements Serializable {
 
         EntryIterator iterator = new EntryIterator();
         while (iterator.hasNext()) {
-            Map.Entry<K, Double> entry = iterator.next();
+            DoubleEntry<K> entry = iterator.next();
             builder.append("\t").append(entry).append(",\n");
         }
 
