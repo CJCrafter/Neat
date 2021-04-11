@@ -13,7 +13,6 @@ public class Species {
     private final List<Client> clients;
     private Client base;
     private double score;
-    private int generations;
 
     public Species(Client base) {
         if (base == null)
@@ -73,6 +72,7 @@ public class Species {
             score += client.getScore();
         }
         score /= clients.size();
+        score = Math.max(score, Double.MIN_VALUE);
     }
 
     public void reset() {
@@ -82,7 +82,6 @@ public class Species {
 
         clients.add(base);
         score = 0;
-        generations++;
     }
 
     public void kill() {
@@ -119,5 +118,18 @@ public class Species {
 
     public int size() {
         return clients.size();
+    }
+
+    @Override
+    public int hashCode() {
+        return base.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Species species = (Species) o;
+        return base.equals(species.base);
     }
 }

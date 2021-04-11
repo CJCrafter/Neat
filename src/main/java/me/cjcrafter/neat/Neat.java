@@ -6,25 +6,18 @@ import me.cjcrafter.neat.genome.ConnectionGene;
 import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
 import me.cjcrafter.neat.genome.NodeGene;
-import me.cjcrafter.neat.ui.Frame;
-import me.cjcrafter.neat.util.primitive.DoubleMap;
 import me.cjcrafter.neat.util.ProbabilityMap;
-import me.cjcrafter.neat.util.Timer;
+import me.cjcrafter.neat.util.primitive.DoubleMap;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -117,10 +110,12 @@ public class Neat implements Serializable {
         }
 
         for (int i = 0; i < maxClients; i++) {
-            Client client = new Client();
+            Client client = new Client(i);
             client.setGenome(newGenome());
             this.clients.add(client);
         }
+
+        sortSpecies();
     }
 
     public int getInputNodes() {
@@ -129,6 +124,14 @@ public class Neat implements Serializable {
 
     public int getOutputNodes() {
         return outputNodes;
+    }
+
+    public List<Client> getClients() {
+        return clients;
+    }
+
+    public List<Species> getSpecies() {
+        return species;
     }
 
     public double getProperty(String property) {
@@ -147,7 +150,6 @@ public class Neat implements Serializable {
             NodeGene node = getNode(i);
             genome.add(node);
         }
-
 
         return genome;
     }
@@ -193,15 +195,8 @@ public class Neat implements Serializable {
         }
     }
 
-    private static final Timer evalTimer = new Timer();
-    private static final Timer killTimer = new Timer();
-    private static final Timer breedTimer = new Timer();
-
-    public void evolve() {
-
+    public void sortSpecies() {
         species.forEach(Species::reset);
-
-        evalTimer.start();
 
         // We need to reset all of the species, and resort all of the clients
         // into their species. If no such species exists, we create new ones.
@@ -221,9 +216,10 @@ public class Neat implements Serializable {
                 }
             }
         }
+    }
 
-        evalTimer.stop();
-        killTimer.start();
+    public void evolve() {
+        sortSpecies();
 
         // Evaluate the value of a species, then kill of it's lowest members.
         // If a species becomes to small, it dies out.
@@ -240,11 +236,12 @@ public class Neat implements Serializable {
             }
         }
 
-        killTimer.stop();
-        breedTimer.start();
-
         ProbabilityMap<Species> random = new ProbabilityMap<>();
         random.putAll(species, Species::getScore);
+
+        if (random.isEmpty()) {
+            System.out.println("weewoo");
+        }
 
         for (Client client : clients) {
             if (client.getSpecies() == null) {
@@ -254,95 +251,9 @@ public class Neat implements Serializable {
                 species.put(client, true);
             }
         }
-
-        breedTimer.stop();
     }
 
-    public void temp() {
-
-        System.out.println(properties + "\n");
-
-        List<Function> functions = new ArrayList<>(Arrays.asList(
-                new Function(0, 0),
-                new Function(1, 0),
-                new Function(0, 1),
-                new Function(1, 1)
-        ));
-
-        Timer evolveTimer = new Timer();
-        Timer fitnessTimer = new Timer();
-
-        int bound = 10000;
-        outer:
-        for (int i = 0; i < bound; i++) {
-            fitnessTimer.start();
-            for (Client client : clients) {
-                double incorrectness = 0.0;
-                Collections.shuffle(functions);
-                for (Function function : functions) {
-                    double output = client.getCalculator().calculate(function.input1, function.input2)[0];
-                    incorrectness += Math.abs(function.output - output);
-                }
-
-                client.setScore(4.0 - incorrectness);
-                if (client.getScore() == 4.0) {
-                    break outer;
-                }
-            }
-            fitnessTimer.stop();
-
-            evolveTimer.start();
-            evolve();
-            evolveTimer.stop();
-
-            if (i != 0 && i % 500 == 0) {
-                System.out.println();
-                printSpecies();
-                System.out.println();
-                System.out.println(new BigDecimal(i / (double) bound * 100.0, new MathContext(2)) + "% complete");
-                System.out.println("\tFitness:   " + fitnessTimer.getElapsedTime());
-                System.out.println("\tEvolution: " + evolveTimer.getElapsedTime());
-                System.out.println("\t\tEvaluate: " + evalTimer.getElapsedTime());
-                System.out.println("\t\tKill:     " + killTimer.getElapsedTime());
-                System.out.println("\t\tBreed:    " + breedTimer.getElapsedTime());
-                System.out.println();
-                System.out.println(debugGenome());
-            }
-        }
-
-        clients.sort(Comparator.comparingDouble(Client::getScore));
-        Client client = clients.get(0);
-
-        for (Function function : functions) {
-            System.out.printf("%s ^ %s = %s%n", function.input1, function.input2, client.getCalculator().calculate(function.input1, function.input2)[0]);
-        }
-
-        if (false) {
-            JSONObject json = deserialize();
-            try (FileWriter writer = new FileWriter(System.getProperty("user.dir") + File.separator + "neat.json")) {
-                writer.write(json.toJSONString());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        Frame frame = new Frame();
-        frame.setGenome(client.getGenome());
-
-        if (client.getScore() != 4.0) {
-            int index = 0;
-            while (true) {
-                frame.setGenome(clients.get(index++ % clients.size()).getGenome());
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
-    private String debugGenome() {
+    public String debugGenome() {
         int nodes = 0;
         int connections = 0;
 
@@ -356,17 +267,6 @@ public class Neat implements Serializable {
         connections /= clients.size();
 
         return "Avg Nodes: " + nodes + "; Avg Connections: " + connections;
-    }
-
-    private static class Function {
-        int input1;
-        int input2;
-        int output;
-        public Function(int input1, int input2) {
-            this.input1 = input1;
-            this.input2 = input2;
-            this.output = input1 ^ input2;
-        }
     }
 
     public void printSpecies() {

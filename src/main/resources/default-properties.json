@@ -1,22 +1,24 @@
 {
-  "speciesDistance": 4.0,
+  "speciesDistance": 2.0,
   "excessFactor": 2.0,
   "disjointFactor": 2.0,
   "weightFactor": 1.0,
 
-  "randomWeightStrength": 1.0,
-  "shiftWeightStrength": 0.025,
+  "randomWeightStrength": 5.0,
+  "shiftWeightStrength": 0.5,
+  "shiftWeightPercentage": 0.175,
 
   "minProgress": 0.01,
   "generationsPerCheck": 50.0,
   "maxFitness": 4.0,
   "minFitnessThreshold": 1.0,
 
-  "mutateRandomWeight": 0.005,
-  "mutateShiftWeight": 0.5,
-  "mutateToggleLink": 0.0,
-  "mutateLink": 0.015,
-  "mutateNode": 0.0004,
+  "mutateRandomWeight": 0.3575,
+  "mutateShiftWeight": 0.45,
+  "mutateShiftWeights": 0.1575,
+  "mutateToggleLink": 0.05,
+  "mutateLink": 0.15,
+  "mutateNode": 0.055,
 
-  "survivalChance": 0.25
+  "survivalChance": 0.22
 }

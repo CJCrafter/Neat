@@ -6,16 +6,22 @@ import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
 import org.json.simple.JSONObject;
 
+import java.awt.*;
+import java.util.Objects;
+
 public class Client implements Comparable<Client>, Serializable {
 
     private Calculator calculator;
     private Genome genome;
     private double score;
     private Species species;
+    private int id;
+    public Color speciesColor;
 
     public Species parentSpecies;
 
-    public Client() {
+    public Client(int id) {
+        this.id = id;
     }
 
     public Calculator getCalculator() {
@@ -54,6 +60,10 @@ public class Client implements Comparable<Client>, Serializable {
         this.parentSpecies = species;
     }
 
+    public int getId() {
+        return id;
+    }
+
     public void mutate(Mutation mutation) {
         if (mutation.mutate(genome))
             calculator = null;
@@ -76,5 +86,18 @@ public class Client implements Comparable<Client>, Serializable {
     @Override
     public int compareTo(Client o) {
         return Double.compare(score, o.score);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Client client = (Client) o;
+        return id == client.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
