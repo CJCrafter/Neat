@@ -1,11 +1,13 @@
 package me.cjcrafter.neat.genome;
 
+import me.cjcrafter.neat.calculator.Node;
 import org.json.simple.JSONObject;
 
-public class NodeGene extends Gene {
+public class NodeGene extends Gene implements Comparable<Node> {
 
     private double x;
     private double y;
+    private double output;
 
     public NodeGene(int id) {
         super(id);
@@ -25,6 +27,11 @@ public class NodeGene extends Gene {
 
     public void setY(double y) {
         this.y = y/* + ThreadLocalRandom.current().nextDouble(-0.05, 0.05)*/;
+    }
+
+    @Override
+    public int compareTo(Node o) {
+        return Double.compare(output, o.output);
     }
 
     @Override
