@@ -146,6 +146,11 @@ public class IntArrayList implements IntList {
     }
 
     @Override
+    public IntIterator iterator() {
+        return new ArrayIterator();
+    }
+
+    @Override
     public IntListIterator listIterator() {
         return new ArrayListIterator(0);
     }

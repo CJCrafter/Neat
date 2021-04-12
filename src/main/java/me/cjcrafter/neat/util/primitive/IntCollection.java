@@ -1,6 +1,6 @@
 package me.cjcrafter.neat.util.primitive;
 
-public interface IntCollection {
+public interface IntCollection extends IntIterable {
 
     int size();
 
