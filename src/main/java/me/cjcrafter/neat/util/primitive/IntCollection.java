@@ -13,4 +13,6 @@ public interface IntCollection {
     boolean remove(int value);
 
     void clear();
+
+    int[] toArray();
 }
