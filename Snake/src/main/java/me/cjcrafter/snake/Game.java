@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Game {
 
-    private static final int CLIENTS = 9 * 8;
+    private static final int CLIENTS = 24 * 16;
 
     private final NeatFrame frame;
     private final Neat neat;
@@ -28,7 +28,7 @@ public class Game {
 
     public Game() {
         neat = new Neat(6, 3, CLIENTS);
-        frame = new SnakeFrame("Snake", neat, this, new Dimension(900, 800), new Dimension(9, 8));
+        frame = new SnakeFrame("Snake", neat, this, new Dimension(1080, 720), new Dimension(24, 16));
         boards = new ArrayList<>();
 
         // Evenly distribute possible species colors, and shuffle them to help

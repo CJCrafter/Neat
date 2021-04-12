@@ -90,6 +90,8 @@ public enum Mutation {
                 connection.setWeight(ThreadLocalRandom.current().nextDouble(-1, +1)
                         * genome.getNeat().getProperty("randomWeightStrength"));
 
+                a.leaving.add(connection);
+                b.entering.add(connection);
                 genome.getConnections().addSorted(connection);
                 return true;
             }
@@ -108,6 +110,9 @@ public enum Mutation {
             NodeGene to = connection.getTo();
             NodeGene middle;
 
+            from.leaving.remove(connection);
+            to.entering.remove(connection);
+
             int replaceId = genome.getNeat().getReplaceIndex(from, to);
             if (replaceId == 0) {
                 middle = genome.getNeat().newNode();
@@ -125,6 +130,11 @@ public enum Mutation {
             b.setWeight(connection.getWeight());
             b.setEnabled(connection.isEnabled());
 
+            from.leaving.add(a);
+            middle.entering.add(a);
+            middle.leaving.add(b);
+            to.entering.add(b);
+
             genome.getConnections().remove(connection);
             genome.getConnections().add(a);
             genome.getConnections().add(b);
@@ -133,14 +143,34 @@ public enum Mutation {
             return true;
         }
     },
+    REMOVE_NODE {
+        @Override
+        public boolean mutate(Genome genome) {
+            Neat neat = genome.getNeat();
+            int currentNodes = genome.getNodes().size();
+            int defaultNodes = neat.getInputNodes() + neat.getOutputNodes();
+            int hidden = currentNodes - defaultNodes;
+
+            if (hidden > 0) {
+                int random = ThreadLocalRandom.current().nextInt(hidden);
+
+                NodeGene node = genome.getNodes().get(defaultNodes + random);
+                genome.remove(node);
+                return true;
+            }
+            return false;
+        }
+    },
     MUTATE {
         @Override
         public boolean mutate(Genome genome) {
             Neat neat = genome.getNeat();
             boolean isMutated = false;
 
+            //if (neat.getProperty("mutateRemoveNode") > ThreadLocalRandom.current().nextDouble())
+            //    isMutated = REMOVE_NODE.mutate(genome);
             if (neat.getProperty("mutateLink") > ThreadLocalRandom.current().nextDouble())
-                isMutated = ADD_LINK.mutate(genome);
+                isMutated |= ADD_LINK.mutate(genome);
             if (neat.getProperty("mutateNode") > ThreadLocalRandom.current().nextDouble())
                 isMutated |= ADD_NODE.mutate(genome);
             if (neat.getProperty("mutateRandomWeight") > ThreadLocalRandom.current().nextDouble())

@@ -6,8 +6,10 @@ import me.cjcrafter.neat.util.SortedList;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Genome implements Serializable {
@@ -44,6 +46,36 @@ public class Genome implements Serializable {
 
     public void add(ConnectionGene gene) {
         connections.add(gene);
+    }
+
+    public void remove(NodeGene node) {
+        Iterator<ConnectionGene> iterator = node.entering.iterator();
+        Collection<ConnectionGene> connectionsToRemove = new LinkedList<>();
+        while (iterator.hasNext()) {
+            ConnectionGene connection = iterator.next();
+            iterator.remove();
+            connectionsToRemove.add(connection);
+
+            connection.getFrom().leaving.remove(connection);
+            if (connection.getFrom().leaving.isEmpty() && connection.getFrom().getType() == NodeType.HIDDEN) {
+                remove(connection.getFrom());
+            }
+        }
+
+        iterator = node.leaving.iterator();
+        while (iterator.hasNext()) {
+            ConnectionGene connection = iterator.next();
+            iterator.remove();
+            connectionsToRemove.add(connection);
+
+            connection.getTo().entering.remove(connection);
+            if (connection.getTo().entering.isEmpty() && connection.getTo().getType() == NodeType.HIDDEN) {
+                remove(connection.getTo());
+            }
+        }
+
+        connectionsToRemove.forEach(connections::remove);
+        nodes.remove(node);
     }
 
     public double distance(Genome g2) {
@@ -106,10 +138,6 @@ public class Genome implements Serializable {
         return neat.getProperty("excessFactor") * excess / n
                 + neat.getProperty("disjointFactor") * disjoint / n
                 + neat.getProperty("weightFactor") * weightDiff;
-    }
-
-    public void mutate(Mutation mutation) {
-        mutation.mutate(this);
     }
 
     public static Genome crossOver(Genome g1, Genome g2) {

@@ -16,13 +16,6 @@ public class Connection {
         this.enabled = true;
     }
 
-    public Connection(Connection other) {
-        this.from = other.from;
-        this.to = other.to;
-        this.weight = other.weight;
-        this.enabled = other.enabled;
-    }
-
     public Node getFrom() {
         return from;
     }

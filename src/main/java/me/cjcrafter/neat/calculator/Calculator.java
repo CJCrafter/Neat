@@ -4,8 +4,10 @@ import me.cjcrafter.neat.Neat;
 import me.cjcrafter.neat.genome.ConnectionGene;
 import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.NodeGene;
+import me.cjcrafter.neat.genome.NodeType;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,24 +30,20 @@ public class Calculator {
 
         Map<NodeGene, Node> temp = new HashMap<>();
 
-        int count = 0;
         for (NodeGene gene : genome.getNodes()) {
             Node node = new Node(gene.getX());
             temp.put(gene, node);
 
-            if (count < inputCount) {
+            if (gene.getType() == NodeType.INPUT) {
                 input.add(node);
-            } else if (count < totalVisible) {
+            } else if (gene.getType() == NodeType.OUTPUT) {
                 output.add(node);
             } else {
                 hidden.add(node);
             }
-
-            count++;
         }
 
-        // todo Check if this sorting is needed, the objects may already be sorted
-        //hidden.sort(Comparator.naturalOrder());
+        hidden.sort(Comparator.naturalOrder());
 
         for (ConnectionGene gene : genome.getConnections()) {
             Connection connection = new Connection(temp.get(gene.getFrom()), temp.get(gene.getTo()));

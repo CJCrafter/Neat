@@ -48,7 +48,7 @@ public class NeatSnake extends Snake {
             client.setScore(client.getScore() + 1);
         } else {
             double newDistance = getHead().clone().subtract(board.getApple()).lengthSquared();
-            client.setScore(client.getScore() + (newDistance > previousDistance ? -0.02 : 0.02));
+            client.setScore(client.getScore() + (newDistance > previousDistance ? -0.002 : 0.0025));
         }
 
         if (ticksSinceLastApple > 150)
@@ -68,26 +68,28 @@ public class NeatSnake extends Snake {
         boolean appleLeft;
         boolean appleRight;
 
+        int dx = getHead().dx(board.getApple());
+        int dy = getHead().dy(board.getApple());
         switch (getLastDirection()) {
             case UP:
-                appleForward = board.getApple().getY() - getHead().getY() < 0 && board.getApple().getX() == getHead().getX();
-                appleLeft = board.getApple().getX() - getHead().getX() < 0;
-                appleRight = board.getApple().getX() - getHead().getX() > 0;
+                appleForward = dy < 0 && dx == 0;
+                appleLeft    = dx < 0 && dy == 0;
+                appleRight   = dx > 0 && dy == 0;
                 break;
             case DOWN:
-                appleForward = board.getApple().getY() - getHead().getY() > 0 && board.getApple().getX() == getHead().getX();
-                appleLeft = board.getApple().getX() - getHead().getX() > 0;
-                appleRight = board.getApple().getX() - getHead().getX() < 0;
+                appleForward = dy < 0 && dx == 0;
+                appleLeft    = dx > 0 && dy == 0;
+                appleRight   = dx < 0 && dy == 0;
                 break;
             case LEFT:
-                appleForward = board.getApple().getX() - getHead().getX() < 0 && board.getApple().getY() == getHead().getY();
-                appleLeft = board.getApple().getY() - getHead().getY() > 0;
-                appleRight = board.getApple().getY() - getHead().getY() < 0;
+                appleForward = dx < 0 && dy == 0;
+                appleLeft    = dy > 0 && dx == 0;
+                appleRight   = dy < 0 && dx == 0;
                 break;
             case RIGHT:
-                appleForward = board.getApple().getX() - getHead().getX() > 0 && board.getApple().getY() == getHead().getY();
-                appleLeft = board.getApple().getY() - getHead().getY() < 0;
-                appleRight = board.getApple().getY() - getHead().getY() > 0;
+                appleForward = dx > 0 && dy == 0;
+                appleLeft    = dy < 0 && dx == 0;
+                appleRight   = dy > 0 && dx == 0;
                 break;
             default:
                 throw new RuntimeException();
@@ -107,10 +109,8 @@ public class NeatSnake extends Snake {
     }
 
     private int look(Direction dir) {
-        Vector2d head = getHead();
-        int temp = !body.contains(head.add(dir.x, dir.y)) && board.inBounds(head) ? 1 : 0;
-        head.add(-dir.x, -dir.y);
-        return temp;
+        Vector2d head = getHead().clone().add(dir.x, dir.y);
+        return body.contains(head.add(dir.x, dir.y)) || !board.inBounds(head) ? 1 : 0;
     }
 
     private static int getLargest(double[] output) {

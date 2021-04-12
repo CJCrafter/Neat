@@ -15,7 +15,7 @@ public class Client implements Comparable<Client>, Serializable {
     private Genome genome;
     private double score;
     private Species species;
-    private int id;
+    private final int id;
     public Color speciesColor;
 
     public Species parentSpecies;

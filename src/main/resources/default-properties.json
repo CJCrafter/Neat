@@ -1,10 +1,10 @@
 {
-  "speciesDistance": 2.0,
-  "excessFactor": 2.0,
-  "disjointFactor": 2.0,
+  "speciesDistance": 0.4,
+  "excessFactor": 1.0,
+  "disjointFactor": 1.0,
   "weightFactor": 1.0,
 
-  "randomWeightStrength": 5.0,
+  "randomWeightStrength": 1.0,
   "shiftWeightStrength": 0.5,
   "shiftWeightPercentage": 0.175,
 
@@ -19,6 +19,7 @@
   "mutateToggleLink": 0.05,
   "mutateLink": 0.15,
   "mutateNode": 0.055,
+  "mutateRemoveNode": 0.02,
 
   "survivalChance": 0.22
 }

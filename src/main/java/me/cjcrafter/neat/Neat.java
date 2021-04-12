@@ -6,6 +6,7 @@ import me.cjcrafter.neat.genome.ConnectionGene;
 import me.cjcrafter.neat.genome.Genome;
 import me.cjcrafter.neat.genome.Mutation;
 import me.cjcrafter.neat.genome.NodeGene;
+import me.cjcrafter.neat.genome.NodeType;
 import me.cjcrafter.neat.util.ProbabilityMap;
 import me.cjcrafter.neat.util.primitive.DoubleMap;
 import org.json.simple.JSONObject;
@@ -155,7 +156,9 @@ public class Neat implements Serializable {
     }
 
     public NodeGene newNode() {
-        NodeGene node = new NodeGene(nodeCache.size());
+        int id = nodeCache.size();
+        NodeType type = id < inputNodes ? NodeType.INPUT : id < inputNodes + outputNodes ? NodeType.OUTPUT : NodeType.HIDDEN;
+        NodeGene node = new NodeGene(type, id);
         nodeCache.add(node);
         return node;
     }

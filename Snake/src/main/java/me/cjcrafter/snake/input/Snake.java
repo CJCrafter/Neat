@@ -68,6 +68,8 @@ public abstract class Snake implements Iterable<Vector2d> {
     public void move(Direction dir) {
         if (dir == null)
             return;
+        else if (dir.isOpposite(lastDirection))
+            throw new IllegalArgumentException();
 
         Vector2d vector = getHead().clone().add(dir.x, dir.y);
         boolean ateApple = vector.equals(board.getApple());
