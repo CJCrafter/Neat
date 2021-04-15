@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Game {
 
-    private static final int CLIENTS = 24 * 16;
+    private static final int CLIENTS = 18 * 12;
 
     private final NeatFrame frame;
     private final Neat neat;
@@ -28,7 +28,7 @@ public class Game {
 
     public Game() {
         neat = new Neat(6, 3, CLIENTS);
-        frame = new SnakeFrame("Snake", neat, this, new Dimension(1080, 720), new Dimension(24, 16));
+        frame = new SnakeFrame("Snake", neat, this, new Dimension(1080, 720), new Dimension(18, 12));
         boards = new ArrayList<>();
 
         // Evenly distribute possible species colors, and shuffle them to help
@@ -84,6 +84,12 @@ public class Game {
                 System.out.println();
                 System.out.println(neat.debugGenome());
                 frames = 0;
+            }
+
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }

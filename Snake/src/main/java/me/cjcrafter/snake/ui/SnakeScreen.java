@@ -23,8 +23,19 @@ public class SnakeScreen extends ClientScreen {
         this.board = board;
         this.snake = board.getSnake();
 
+        if (width % board.getSize() != 0 || height % board.getSize() != 0)
+            throw new IllegalArgumentException("You fool, your ratios are bad! " + new Dimension(width, height) + " % " + board.getSize());
+
         this.cellWidth = width / board.getSize();
         this.cellHeight = height / board.getSize();
+    }
+
+    @Override
+    public void renderGenome() {
+
+        // Make sure to render the client next chance we get
+        wasAlive = true;
+        super.renderGenome();
     }
 
     @Override
@@ -36,7 +47,8 @@ public class SnakeScreen extends ClientScreen {
                 return;
         }
 
-        fill(snake.isAlive() ? 0x1f1f1f : 0xff0000);
+        madeChanges = true;
+        fill(snake.isAlive() ? BACKGROUND : 0xff0000);
 
         Vector2d vector = board.getApple();
         Rectangle rectangle = new Rectangle(vector.getX() * cellWidth, vector.getY() * cellHeight, cellWidth, cellHeight);
@@ -45,6 +57,7 @@ public class SnakeScreen extends ClientScreen {
         for (Vector2d vector2d : snake) {
             rectangle = new Rectangle(vector2d.getX() * cellWidth, vector2d.getY() * cellHeight, cellWidth, cellHeight);
             fill(rectangle, client.getSpecies().getBase().speciesColor);
+            outline(rectangle, BACKGROUND);
         }
 
         if (!snake.isAlive()) {

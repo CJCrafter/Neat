@@ -77,7 +77,7 @@ public class NeatSnake extends Snake {
                 appleRight   = dx > 0 && dy == 0;
                 break;
             case DOWN:
-                appleForward = dy < 0 && dx == 0;
+                appleForward = dy > 0 && dx == 0;
                 appleLeft    = dx > 0 && dy == 0;
                 appleRight   = dx < 0 && dy == 0;
                 break;
@@ -110,7 +110,7 @@ public class NeatSnake extends Snake {
 
     private int look(Direction dir) {
         Vector2d head = getHead().clone().add(dir.x, dir.y);
-        return body.contains(head.add(dir.x, dir.y)) || !board.inBounds(head) ? 1 : 0;
+        return body.contains(head) || !board.inBounds(head) ? 1 : 0;
     }
 
     private static int getLargest(double[] output) {

@@ -16,6 +16,7 @@ public class ClientScreen extends Screen {
 
     protected Client client;
     private boolean showGenome;
+    protected boolean madeChanges;
 
     public ClientScreen(int width, int height, Client client) {
         super(width, height);
@@ -31,8 +32,14 @@ public class ClientScreen extends Screen {
         this.showGenome = showGenome;
     }
 
+    public boolean isMadeChanges() {
+        return madeChanges;
+    }
+
     @Override
     public void render() {
+        madeChanges = false;
+        Thread.yield();
         if (showGenome)
             renderGenome();
         else
@@ -40,6 +47,7 @@ public class ClientScreen extends Screen {
     }
 
     public void renderGenome() {
+        madeChanges = true;
         fill(BACKGROUND);
         Genome genome = client.getGenome();
         if (genome == null)

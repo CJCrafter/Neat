@@ -12,8 +12,8 @@ import java.util.function.Function;
 
 public class NeatFrame extends JFrame {
 
-    public static final int BORDER_WIDTH = 1;
-    public static final int BORDER_HEIGHT = 1;
+    public static final int BORDER_WIDTH = 5;
+    public static final int BORDER_HEIGHT = BORDER_WIDTH;
 
     protected final JPanel buttonHolder;
     private final JPanel clientPanel;
@@ -28,6 +28,9 @@ public class NeatFrame extends JFrame {
 
     public NeatFrame(String name, Neat neat, Dimension resolution, Dimension grid) {
         super(name);
+
+        Dimension imgRes = new Dimension(resolution.width + (grid.width - 1) * BORDER_WIDTH,
+                resolution.height + (grid.height - 1) * BORDER_HEIGHT);
 
         this.neat = neat;
 
@@ -47,12 +50,14 @@ public class NeatFrame extends JFrame {
         buttonHolder = new JPanel();
         fillButtonHolder();
 
-        this.img = new BufferedImage(resolution.width, resolution.height, BufferedImage.TYPE_INT_RGB);
+        this.img = new BufferedImage(imgRes.width, imgRes.height, BufferedImage.TYPE_INT_RGB);
         this.pixels = ((DataBufferInt) img.getRaster().getDataBuffer()).getData();
         this.grid = grid;
         this.cellWidth = resolution.width / grid.width;
         this.cellHeight = resolution.height / grid.height;
         this.clients = new ClientScreen[grid.height * grid.width];
+
+        System.out.println("Cell Size: " + cellWidth + ", " + cellHeight);
 
         Arrays.fill(pixels, 0x3c3f41);
 
@@ -61,10 +66,10 @@ public class NeatFrame extends JFrame {
     }
 
     public void fillClients(Function<Rectangle, ? extends ClientScreen> supplier) {
-        int cellWidth = (img.getWidth() - grid.width + 1) / grid.width;
-        int cellHeight = (img.getHeight() - grid.height + 1) / grid.height;
         for (int i = 0; i < clients.length; i++) {
-            Rectangle rectangle = new Rectangle(i % grid.width, i / grid.width, cellWidth, cellHeight);
+            int x = (i % grid.width) * (cellWidth + BORDER_WIDTH);
+            int y = (i / grid.height) * (cellHeight + BORDER_HEIGHT);
+            Rectangle rectangle = new Rectangle(x, y, cellWidth, cellHeight);
             clients[i] = supplier.apply(rectangle);
         }
     }
@@ -80,8 +85,6 @@ public class NeatFrame extends JFrame {
 
     public void render() {
         sortClients();
-        int customCellWidth = (img.getWidth() - grid.width + 1) / grid.width;
-        int customCellHeight = (img.getHeight() - grid.height + 1) / grid.height;
 
         for (int i = 0; i < clients.length; i++) {
             try {
@@ -91,14 +94,16 @@ public class NeatFrame extends JFrame {
                 continue;
             }
 
+            if (!clients[i].isMadeChanges())
+                continue;
             int[] pixels = clients[i].getPixels();
 
-            int yOffset = i / grid.width * cellHeight;
-            int xOffset = i % grid.width * cellWidth;
-            for (int y = 0; y < customCellHeight; y++) {
-                for (int x = 0; x < customCellWidth; x++) {
+            int xOffset = (i % grid.width) * (cellWidth + BORDER_WIDTH);
+            int yOffset = (i / grid.width) * (cellHeight + BORDER_HEIGHT);
+            for (int y = 0; y < clients[i].getHeight(); y++) {
+                for (int x = 0; x < clients[i].getWidth(); x++) {
                     int loc = (y + yOffset) * img.getWidth() + (x + xOffset);
-                    this.pixels[loc] = pixels[y * customCellWidth + x];
+                    this.pixels[loc] = pixels[y * clients[i].getWidth() + x];
                 }
             }
         }

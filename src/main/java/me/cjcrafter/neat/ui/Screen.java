@@ -56,6 +56,29 @@ public abstract class Screen {
         }
     }
 
+    public void outline(Rectangle rectangle, Color color) {
+       outline(rectangle, color.getRGB());
+    }
+
+    public void outline(Rectangle rectangle, int color) {
+        int x = rectangle.x;
+        int y = rectangle.y;
+
+        int yBound = rectangle.y + rectangle.height;
+        int xBound = rectangle.x + rectangle.width;
+
+        // Limited to 1 pixel wide, but is more efficient then looping through
+        // every pixel in a rectangle.
+        for (; y < yBound; y++)
+            setPixel(x, y, color);
+        for (; x < xBound; x++)
+            setPixel(x, y, color);
+        for (; y >= rectangle.y; y--)
+            setPixel(x, y, color);
+        for (; x >= rectangle.x; x--)
+            setPixel(x, y, color);
+    }
+
     public Graphics2D getGraphics() {
         return img.createGraphics();
     }
