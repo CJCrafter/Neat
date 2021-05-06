@@ -17,6 +17,10 @@ public abstract class Screen {
         this.bound = new Dimension(width, height);
     }
 
+    public BufferedImage getImg() {
+        return img;
+    }
+
     public int getWidth() {
         return img.getWidth();
     }
