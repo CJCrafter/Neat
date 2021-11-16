@@ -55,6 +55,12 @@ public class Vector2i implements Cloneable {
         return this;
     }
 
+    public Vector2i multiply(int x, int y) {
+        this.x *= x;
+        this.y *= y;
+        return this;
+    }
+
     public Vector2i divide(int n) {
         this.x /= n;
         this.y /= n;

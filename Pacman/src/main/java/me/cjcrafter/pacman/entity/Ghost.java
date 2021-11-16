@@ -39,7 +39,7 @@ public class Ghost extends Entity {
     private Vector2i spawnLocation;
     private Vector2i scatterLocation;
 
-    // Personal dot counter to determine when to live the ghost pen. This should
+    // Personal dot counter to determine when to leave the ghost pen. This should
     // be reset to 0 in between level/lives.
     private int dotCounter;
     private boolean released;
@@ -227,7 +227,7 @@ public class Ghost extends Entity {
         return switch (state) {
             case WALL -> false;
             case SPACE, PELLET, POWER_PELLET -> true;
-            case TUNNEL -> this.state != GhostState.FRIGHTENED || board.getTile(tile) ==  TileState.TUNNEL;
+            case TUNNEL -> this.state != GhostState.FRIGHTENED || board.getTile(tile) == TileState.TUNNEL;
             case MEMBRANE -> this.state == GhostState.EATEN || board.getTile(tile) == TileState.MEMBRANE;
         };
     }
@@ -259,7 +259,7 @@ public class Ghost extends Entity {
             return;
         }
 
-        // If a ghost is now released, but was not previously released, we nee
+        // If a ghost is now released, but was not previously released, we need
         // the ghost to follow a specific path in order to exit the ghost pen.
         else if (!wasReleased) {
             int dx = board.getWidth() * MIDPOINT - (tile.getX() * TILE_SIZE + (int) offset.getX());
@@ -289,6 +289,10 @@ public class Ghost extends Entity {
             setState(GhostState.CHASE);
         }
 
+        if (state == GhostState.EATEN && spawnLocation.equals(tile.clone().multiply(TILE_SIZE)))
+            setState(board.isChase() ? GhostState.CHASE : GhostState.SCATTER);
+
+
         Player player = board.getPlayer();
         if (player.tile.equals(tile)) {
             collide(player);
@@ -299,10 +303,6 @@ public class Ghost extends Entity {
 
         boolean changeDir = false;
         if (nextDirection != null && nextDirection != direction) {
-
-            // Since this block prevents the ghost from passing the mid point
-            // of a tile, it is safe to assume that the ghost is moving towards
-            // the center of a tile, hence the Math.abs
             double distance = Math.abs(MIDPOINT - (direction.getDx() != 0.0 ? offset.getX() : offset.getY()));
 
             if (distance < speed) {
@@ -340,11 +340,24 @@ public class Ghost extends Entity {
         int yOffset = spriteTile.getY() * sprite.getTileHeight();
         byte[] pixels = sprite.getPixels();
 
-        int scale = 1;
-        int xScreen = (tile.getX() * TILE_SIZE + (int) offset.getX()) - (sprite.getTileWidth() * scale) / 2;
-        int yScreen = (tile.getY() * TILE_SIZE + (int) offset.getY()) - (sprite.getTileHeight() * scale) / 2;
+        int tileWidth = screen.getWidth() / board.getWidth();
+        int tileHeight = screen.getHeight() / board.getHeight();
 
-        //getCurrentBehavior().render(this, screen);
+        int scale = 1;
+        int xScreen;
+        int yScreen;
+
+        {
+            double boardPositionX = tile.getX() * tileWidth + offset.getX();
+            double boardPositionY = tile.getY() * tileHeight + offset.getY();
+            double middleOffsetX = sprite.getTileWidth() * scale / 2.0;
+            double middleOffsetY = sprite.getTileHeight() * scale / 2.0;
+
+            xScreen = (int) (boardPositionX - middleOffsetX);
+            yScreen = (int) (boardPositionY - middleOffsetY);
+        }
+
+        getCurrentBehavior().render(this, screen);
 
         for (int y = 0; y < sprite.getTileHeight(); y++) {
             int yPos = yScreen + scale * y;

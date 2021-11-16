@@ -26,7 +26,7 @@ public class SpriteBoard extends Board {
                 tiles[y][x] = switch (col) {
                     case 0 -> TileState.SPACE;
                     case 1 -> TileState.TUNNEL;
-                    case 2 -> TileState.PELLET;
+                    case 2 -> {remainingDots++; yield TileState.PELLET; }
                     case 3 -> TileState.POWER_PELLET;
                     case 4 -> TileState.MEMBRANE;
                     case 5 -> TileState.WALL;

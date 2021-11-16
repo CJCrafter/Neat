@@ -41,7 +41,7 @@ public class Game {
 
         AtomicInteger i = new AtomicInteger();
         frame.fillClients(rectangle -> {
-            Board board = new Board(12);
+            Board board = new Board(20);
             Color color = colors.get(i.get());
             Client client = neat.getClients().get(i.getAndIncrement());
             client.speciesColor = color;

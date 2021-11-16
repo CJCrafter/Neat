@@ -3,6 +3,7 @@ package me.cjcrafter.pacman.entity.behavior;
 import me.cjcrafter.neat.ui.Screen;
 import me.cjcrafter.pacman.Direction;
 import me.cjcrafter.pacman.Vector2i;
+import me.cjcrafter.pacman.board.Board;
 import me.cjcrafter.pacman.board.TileState;
 import me.cjcrafter.pacman.entity.Entity;
 import me.cjcrafter.pacman.entity.Ghost;
@@ -73,6 +74,7 @@ public interface Behavior {
     default void render(Ghost ghost, Screen screen) {
         Ghost before = ghost;
         ghost = new Ghost(ghost);
+        Board board = ghost.getBoard();
 
         // Render a tile "outline". I could make this a sprite, but this is
         // more for testing.
@@ -80,8 +82,11 @@ public interface Behavior {
         if (target == null)
             return;
 
-        int x = target.getX() * TILE_SIZE;
-        int y = target.getY() * TILE_SIZE;
+        int tileWidth = screen.getWidth() / board.getWidth();
+        int tileHeight = screen.getHeight() / board.getHeight();
+
+        int x = target.getX() * tileWidth;
+        int y = target.getY() * tileHeight;
         int c = ghost.getColors()[1];
 
         screen.setPixel(x + 0, y + 0, c);
@@ -110,14 +115,16 @@ public interface Behavior {
         while (!getTarget(before).equals(ghost.getTile()) && max-- > 0) {
             Direction direction = getDirection(ghost);
             Vector2i old = ghost.getTile().clone()
-                    .multiply(TILE_SIZE)
+                    .multiply(tileWidth, tileHeight)
                     .add((int) ghost.getOffset().getX(), (int) ghost.getOffset().getY());
             ghost.move(direction, TILE_SIZE);
             Vector2i now = ghost.getTile().clone()
-                    .multiply(TILE_SIZE)
+                    .multiply(tileWidth, tileHeight)
                     .add((int) ghost.getOffset().getX(), (int) ghost.getOffset().getY());
 
             g.drawLine(old.getX(), old.getY(), now.getX(), now.getY());
         }
+
+        g.dispose();
     }
 }

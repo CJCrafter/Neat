@@ -33,6 +33,7 @@ public abstract class Board {
     protected TileState[][] tiles;
     protected List<Ghost> ghosts;
     protected Player player;
+    protected int remainingDots;
 
     private final BufferedImage img;
     protected int width;
@@ -66,6 +67,14 @@ public abstract class Board {
 
     public void setPlayer(Player player) {
         this.player = player;
+    }
+
+    public int getRemainingDots() {
+        return remainingDots;
+    }
+
+    public void setRemainingDots(int remainingDots) {
+        this.remainingDots = remainingDots;
     }
 
     public List<Ghost> getGhosts() {
@@ -162,6 +171,8 @@ public abstract class Board {
     public void tick() {
         if (startTicks-- > 0)
             return;
+        if (!player.isAlive() || getRemainingDots() == 0)
+            return;
 
         if (frightTimer > 0)
             frightTimer--;
@@ -185,32 +196,45 @@ public abstract class Board {
             ghost.tick();
     }
 
+    public void reset() {
+        startTicks = (int) Pacman.TICKS_PER_SECOND * 0;
+        chase = true;
+        timer = 1;
+        index = 0;
+
+        player.reset();
+        ghosts.forEach(Ghost::reset);
+
+        initBoard();
+    }
+
     public void render(Screen screen) {
 
         Graphics2D g = screen.getGraphics();
-        g.setColor(new Color(0xffb897));
         g.drawImage(img, 0, 0, screen.getWidth(), screen.getHeight(), null);
-
-        TEXT.render(screen, "1UP", new Vector2i(3, 0).multiply(8), 0xFFFFFF);
-        TEXT.renderLeft(screen, String.valueOf(player.getScore()), new Vector2i(5, 1).multiply(8), 0xFFFFFF);
-        TEXT.render(screen, "HIGH SCORE", new Vector2i(9, 0).multiply(8), 0xFFFFFF);
+        g.dispose();
 
         int tileWidth = screen.getWidth() / width;
         int tileHeight = screen.getHeight() / height;
 
+        TEXT.render(screen, "1UP", new Vector2i(3, 0).multiply(tileWidth), 0xFFFFFF);
+        TEXT.renderLeft(screen, String.valueOf(player.getScore()), new Vector2i(5, 1).multiply(tileWidth, tileHeight), 0xFFFFFF);
+        TEXT.render(screen, "HIGH SCORE", new Vector2i(9, 0).multiply(tileWidth), 0xFFFFFF);
+
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 Rectangle rectangle = new Rectangle(x * tileWidth, y * tileHeight, tileWidth, tileHeight);
+                //screen.fill(rectangle, (x + y) % 2 == 0 ? 0x000000 : 0x0000A0);
 
                 if (tiles[y][x] == TileState.PELLET) {
-                    screen.fill(new Rectangle(rectangle.x + tileWidth / 2 - 1, rectangle.y + tileHeight / 2 - 1, 2, 2), 0xffb897);
+                    screen.fill(new Rectangle(
+                            rectangle.x + tileWidth / 2 - 1,
+                            rectangle.y + tileHeight / 2 - 1, 2, 2), 0xffb897);
                 } else if (tiles[y][x] == TileState.POWER_PELLET && player.getTicksAlive() % 20 < 10) {
                     screen.fill(rectangle, 0xffb897);
                 }
             }
         }
-
-        g.dispose();
 
         for (Ghost ghost : ghosts) {
             ghost.render(screen);

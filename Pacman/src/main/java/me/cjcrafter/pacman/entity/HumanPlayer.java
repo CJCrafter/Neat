@@ -55,7 +55,6 @@ public class HumanPlayer extends Player {
             this.direction = direction;
             if (Math.abs(delta) < speed) {
                 previousDirection = null;
-
             }
         }
     }

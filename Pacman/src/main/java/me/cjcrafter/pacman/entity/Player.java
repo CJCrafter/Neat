@@ -104,7 +104,20 @@ public abstract class Player extends Entity {
     }
 
     @Override
+    public void reset() {
+        super.reset();
+
+        isAlive = true;
+        score = 0;
+        freezeTicks = 0;
+        previousDirection = null;
+        this.tile = new Vector2i(14, 26);
+        this.offset = new Vector2d(0, MIDPOINT);
+    }
+
+    @Override
     public void render(Screen screen) {
+
         int xSprite = switch (animationFrame % 4) {
             case 0 -> 2;
             case 1, 3 -> 0;
@@ -118,9 +131,22 @@ public abstract class Player extends Entity {
         int yOffset = ySprite * sprite.getTileHeight();
         byte[] pixels = sprite.getPixels();
 
+        int tileWidth = screen.getWidth() / board.getWidth();
+        int tileHeight = screen.getHeight() / board.getHeight();
+
         int scale = 1;
-        int xScreen = (tile.getX() * TILE_SIZE + (int) offset.getX()) - (sprite.getTileWidth() * scale) / 2;
-        int yScreen = (tile.getY() * TILE_SIZE + (int) offset.getY()) - (sprite.getTileHeight() * scale) / 2;
+        int xScreen;
+        int yScreen;
+
+        {
+            double boardPositionX = tile.getX() * tileWidth + offset.getX();
+            double boardPositionY = tile.getY() * tileHeight + offset.getY();
+            double middleOffsetX = sprite.getTileWidth() * scale / 2.0;
+            double middleOffsetY = sprite.getTileHeight() * scale / 2.0;
+
+            xScreen = (int) (boardPositionX - middleOffsetX);
+            yScreen = (int) (boardPositionY - middleOffsetY);
+        }
 
         for (int y = 0; y < sprite.getTileHeight(); y++) {
             int yPos = yScreen + scale * y;
