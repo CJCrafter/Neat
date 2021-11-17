@@ -9,10 +9,14 @@ import me.cjcrafter.neat.genome.NodeGene;
 import me.cjcrafter.neat.genome.NodeType;
 import me.cjcrafter.neat.util.ProbabilityMap;
 import me.cjcrafter.neat.util.primitive.DoubleMap;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -53,10 +57,8 @@ public class Neat implements Serializable {
 
     @SuppressWarnings("all")
     public void init(int inputNodes, int outputNodes, int clients) {
-        this.connectionCache = new HashMap<>();
-        this.nodeCache = new ArrayList<>();
-        this.clients = new ArrayList<>(clients);
-        this.species = new ArrayList<>();
+        if (connectionCache == null)
+            connectionCache = new HashMap<>();
 
         this.inputNodes = inputNodes;
         this.outputNodes = outputNodes;
@@ -72,50 +74,58 @@ public class Neat implements Serializable {
             e.printStackTrace();
         }
 
-        properties = new DoubleMap<>();
-        try {
-            JSONParser parser = new JSONParser();
-            InputStream resource = getClass().getClassLoader().getResourceAsStream("default-properties.json");
-            Map map = (Map) parser.parse(new InputStreamReader(resource));
-            JSONObject json = new JSONObject(map);
-            properties.serialize(json);
-        } catch (ParseException | IOException e) {
-            e.printStackTrace();
-        }
+        // This check means that the data has already been serialized, and we
+        // do not need to fill it in again. This applies to clients,
+        // properties, nodes, connections, etc.
+        if (properties == null) {
+            properties = new DoubleMap<>();
+            try {
+                JSONParser parser = new JSONParser();
+                InputStream resource = getClass().getClassLoader().getResourceAsStream("default-properties.json");
+                Map map = (Map) parser.parse(new InputStreamReader(resource));
+                JSONObject json = new JSONObject(map);
+                properties.serialize(json);
+            } catch (ParseException | IOException e) {
+                e.printStackTrace();
+            }
 
-        // Sets the input node layer. The number of input nodes will not change
-        // unless the reset method is called. The input nodes are always
-        // rendered on the left side
-        for (int i = 0; i < inputNodes; i++) {
-            NodeGene node = newNode();
-            node.setX(0.1);
-            node.setY((i + 1.0) / (inputNodes + 1.0));
-        }
-
-        // Sets the output node layer. The number of output nodes will not
-        // change unless the reset method is called. The output nodes are
-        // always rendered on the right side.
-        for (int i = 0; i < outputNodes; i++) {
-            NodeGene node = newNode();
-            node.setX(0.9);
-            node.setY((i + 1.0) / (outputNodes + 1.0));
-        }
-
-        for (int i = 0; i < hiddenLayers.length; i++) {
-            int count = hiddenLayers[i];
-            for (int j = 0; j < count; j++) {
+            // Sets the input node layer. The number of input nodes will not change
+            // unless the reset method is called. The input nodes are always
+            // rendered on the left side
+            this.nodeCache = new ArrayList<>();
+            for (int i = 0; i < inputNodes; i++) {
                 NodeGene node = newNode();
-                node.setX(0.8 / (hiddenLayers.length + 1) * (i + 1) + 0.1);
-                node.setY((j + 1.0) / (count + 1.0));
+                node.setX(0.1);
+                node.setY((i + 1.0) / (inputNodes + 1.0));
+            }
+
+            // Sets the output node layer. The number of output nodes will not
+            // change unless the reset method is called. The output nodes are
+            // always rendered on the right side.
+            for (int i = 0; i < outputNodes; i++) {
+                NodeGene node = newNode();
+                node.setX(0.9);
+                node.setY((i + 1.0) / (outputNodes + 1.0));
+            }
+
+            for (int i = 0; i < hiddenLayers.length; i++) {
+                int count = hiddenLayers[i];
+                for (int j = 0; j < count; j++) {
+                    NodeGene node = newNode();
+                    node.setX(0.8 / (hiddenLayers.length + 1) * (i + 1) + 0.1);
+                    node.setY((j + 1.0) / (count + 1.0));
+                }
+            }
+
+            this.clients = new ArrayList<>(clients);
+            for (int i = 0; i < maxClients; i++) {
+                Client client = new Client(i);
+                client.setGenome(newGenome());
+                this.clients.add(client);
             }
         }
 
-        for (int i = 0; i < maxClients; i++) {
-            Client client = new Client(i);
-            client.setGenome(newGenome());
-            this.clients.add(client);
-        }
-
+        this.species = new ArrayList<>();
         sortSpecies();
     }
 
@@ -201,7 +211,7 @@ public class Neat implements Serializable {
     public void sortSpecies() {
         species.forEach(Species::reset);
 
-        // We need to reset all of the species, and resort all of the clients
+        // We need to reset all the species, and re-sort all the clients
         // into their species. If no such species exists, we create new ones.
         for (Client client : clients) {
             if (client.getSpecies() == null) {
@@ -300,7 +310,77 @@ public class Neat implements Serializable {
     }
 
     @Override
-    public void serialize(JSONObject data) {
+    @SuppressWarnings("unchecked")
+    public void serialize(JSONObject json) {
+        if (
+                !json.containsKey("properties") ||
+                !json.containsKey("inputNodes") ||
+                !json.containsKey("outputNodes") ||
+                !json.containsKey("maxClients") ||
+                !json.containsKey("connections") ||
+                !json.containsKey("nodes") ||
+                !json.containsKey("clients")
+        ) {
+            throw new IllegalArgumentException("Cannot serialize Neat from " + json);
+        }
 
+        int inputNodes = (int) json.get("inputNodes");
+        int outputNodes = (int) json.get("outputNodes");
+        int maxClients = (int) json.get("maxClients");
+
+        properties = new DoubleMap<>();
+        properties.serialize((JSONObject) json.get("properties"));
+
+        connectionCache = new HashMap<>();
+        nodeCache = new ArrayList<>();
+        clients = new ArrayList<>();
+
+        JSONArray nodeArray = (JSONArray) json.get("nodes");
+        JSONArray connectionArray = (JSONArray) json.get("connections");
+        JSONArray clientArray = (JSONArray) json.get("clients");
+
+        nodeArray.forEach(obj -> {
+            JSONObject nodeJsonData = ((JSONObject) obj);
+            NodeGene node = new NodeGene(null, 0);
+            node.serialize(nodeJsonData);
+            nodeCache.add(node);
+        });
+
+        connectionArray.forEach(obj -> {
+            JSONObject connectionJsonData = (JSONObject) obj;
+            NodeGene from = nodeCache.get((int) connectionJsonData.get("from"));
+            NodeGene to = nodeCache.get((int) connectionJsonData.get("to"));
+
+            ConnectionGene connection = new ConnectionGene(from, to);
+            connection.serialize(connectionJsonData);
+            connectionCache.put(connection, connection);
+        });
+
+        clientArray.forEach(obj -> {
+            JSONObject clientJsonData = (JSONObject) obj;
+            Client client = new Client(this);
+            client.serialize(clientJsonData);
+            clients.add(client);
+        });
+
+        init(inputNodes, outputNodes, maxClients);
+    }
+
+    public void save(File file) {
+        try (FileWriter writer = new FileWriter(file)) {
+            writer.write(deserialize().toJSONString());
+            writer.flush();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    public void load(File file) {
+        JSONParser json = new JSONParser();
+        try (FileReader reader = new FileReader(file)) {
+            serialize((JSONObject) json.parse(reader));
+        } catch (IOException | ParseException ex) {
+            ex.printStackTrace();
+        }
     }
 }

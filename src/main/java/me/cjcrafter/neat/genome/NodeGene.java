@@ -7,7 +7,7 @@ import java.util.List;
 
 public class NodeGene extends Gene {
 
-    private final NodeType type;
+    private NodeType type;
     private double x;
     private double y;
 
@@ -46,14 +46,24 @@ public class NodeGene extends Gene {
     @SuppressWarnings("unchecked")
     public JSONObject deserialize() {
         JSONObject json = super.deserialize();
+        json.put("type", type.ordinal());
         json.put("x", x);
         json.put("y", y);
         return json;
     }
 
     @Override
-    public void serialize(JSONObject data) {
-        super.serialize(data);
+    public void serialize(JSONObject json) {
+        super.serialize(json);
+
+        type = switch ((int) json.get("type")) {
+            case 0 -> NodeType.INPUT;
+            case 1 -> NodeType.OUTPUT;
+            case 2 -> NodeType.HIDDEN;
+            default -> throw new IllegalArgumentException("Invalid ordinal: " + json.get("type"));
+        };
+        x = (double) json.get("x");
+        y = (double) json.get("y");
     }
 
     @Override

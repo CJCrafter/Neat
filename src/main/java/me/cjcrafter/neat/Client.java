@@ -12,16 +12,21 @@ import java.util.Objects;
 public class Client implements Comparable<Client>, Serializable {
 
     private Calculator calculator;
+    private Neat neat;
     private Genome genome;
     private double score;
     private Species species;
-    private final int id;
+    private int id;
     public Color speciesColor;
 
     public Species parentSpecies;
 
     public Client(int id) {
         this.id = id;
+    }
+
+    public Client(Neat neat) {
+        this.neat = neat;
     }
 
     public Calculator getCalculator() {
@@ -75,12 +80,21 @@ public class Client implements Comparable<Client>, Serializable {
         JSONObject json = new JSONObject();
         json.put("genome", genome.deserialize());
         json.put("score", score);
+        json.put("id", id);
+        if (speciesColor != null) json.put("color", speciesColor.getRGB());
+
+        neat = null; // we don't need this anymore... just for genome
         return json;
     }
 
     @Override
-    public void serialize(JSONObject data) {
+    public void serialize(JSONObject json) {
+        genome = new Genome(neat);
+        genome.serialize((JSONObject) json.get("genome"));
 
+        id = (int) json.get("id");
+        score = (double) json.get("score");
+        speciesColor = json.containsKey("color") ? new Color((int) json.get("color")) : null;
     }
 
     @Override

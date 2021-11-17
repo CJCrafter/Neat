@@ -3,9 +3,11 @@ package me.cjcrafter.neat.ui;
 import me.cjcrafter.neat.Neat;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileFilter;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.io.File;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Function;
@@ -15,7 +17,7 @@ public class NeatFrame extends JFrame {
     public static final int BORDER_WIDTH = 5;
     public static final int BORDER_HEIGHT = BORDER_WIDTH;
 
-    protected final JPanel buttonHolder;
+    protected final JMenuBar menu;
     private final JPanel clientPanel;
     protected final Neat neat;
 
@@ -47,7 +49,7 @@ public class NeatFrame extends JFrame {
         clientPanel.setPreferredSize(new Dimension(grid.width * 10, grid.height * 10));
         add(clientPanel, BorderLayout.CENTER);
 
-        buttonHolder = new JPanel();
+        menu = new JMenuBar();
         fillButtonHolder();
 
         this.img = new BufferedImage(imgRes.width, imgRes.height, BufferedImage.TYPE_INT_RGB);
@@ -75,8 +77,56 @@ public class NeatFrame extends JFrame {
     }
 
     protected void fillButtonHolder() {
-        buttonHolder.setPreferredSize(new Dimension(900, 50));
-        add(buttonHolder, BorderLayout.NORTH);
+        setJMenuBar(menu);
+
+        JMenu file = new JMenu("File");
+
+        // We would like to save the current NEAT instance to a file. To do
+        // this, the player must choose some file to save it to. We must also
+        // allow the player to load a NEAT instance from a file.
+        JFileChooser chooser = new JFileChooser(System.getProperty("user.dir"));
+        chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        chooser.setFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File f) {
+                return f.isDirectory() || f.getName().endsWith(".json");
+            }
+
+            @Override
+            public String getDescription() {
+                return "JSON File";
+            }
+        });
+
+        JMenuItem save = new JMenuItem("Save As");
+        save.addActionListener(e -> {
+            int returnVal = chooser.showSaveDialog(menu);
+
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file1 = chooser.getSelectedFile();
+                neat.save(file1);
+                System.out.println("Saving to: " + file1.getName() + ".");
+            } else {
+                System.out.println("Save was cancelled by user.");
+            }
+        });
+        file.add(save);
+
+        JMenuItem load = new JMenuItem("Load");
+        load.addActionListener(e -> {
+            int returnVal = chooser.showOpenDialog(menu);
+
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file1 = chooser.getSelectedFile();
+                neat.load(file1);
+                System.out.println("Loading from: " + file1.getName() + ".");
+            } else {
+                System.out.println("Load was cancelled by user.");
+            }
+        });
+        file.add(load);
+
+        menu.add(file);
     }
 
     public void paintScreen(Graphics g) {

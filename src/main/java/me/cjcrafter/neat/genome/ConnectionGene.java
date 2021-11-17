@@ -88,8 +88,15 @@ public class ConnectionGene extends Gene implements Serializable {
     }
 
     @Override
-    public void serialize(JSONObject data) {
+    public void serialize(JSONObject json) {
+        if (from == null || to == null)
+            throw new IllegalStateException("Nodes have not been initialized!");
 
+        super.serialize(json);
+
+        weight = (double) json.get("weight");
+        enabled = (boolean) json.get("enabled");
+        replaceId = (int) json.get("replaceId");
     }
 
     @Override

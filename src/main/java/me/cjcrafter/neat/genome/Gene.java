@@ -29,7 +29,7 @@ public abstract class Gene implements Serializable {
 
     @Override
     public void serialize(JSONObject data) {
-
+        id = (int) data.get("id");
     }
 
     @Override
