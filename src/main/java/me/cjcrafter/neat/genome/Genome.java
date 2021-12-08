@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Genome implements Serializable {
@@ -202,13 +203,13 @@ public class Genome implements Serializable {
 
         arr = new JSONArray();
         for (ConnectionGene connection : connections) {
-            arr.add(connection.getId());
+            arr.add(connection.getFrom().getId() + " " + connection.getTo().getId() + " " + connection.getWeight());
         }
         json.put("connections", arr);
 
         arr = new JSONArray();
         for (NodeGene node : nodes) {
-            arr.add(node.id);
+            arr.add(node.getId());
         }
         json.put("nodes", arr);
 
@@ -216,8 +217,21 @@ public class Genome implements Serializable {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void serialize(JSONObject data) {
+        for (long id : (List<Long>) data.get("nodes")) {
+            nodes.add(neat.getNode((int) id));
+        }
 
+        for (String ids : (List<String>) data.get("connections")) {
+            String[] split = ids.split(" ");
+            NodeGene from = neat.getNode(Integer.parseInt(split[0]));
+            NodeGene to = neat.getNode(Integer.parseInt(split[1]));
+
+            ConnectionGene connection = neat.newConnectionGene(from, to);
+            connection.setWeight(Double.parseDouble(split[2]));
+            connections.add(connection);
+        }
     }
 
     @Override

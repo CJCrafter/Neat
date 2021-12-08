@@ -16,6 +16,10 @@ public class NeatPlayer extends Player {
         this.client = client;
     }
 
+    public void setClient(Client client) {
+        this.client = client;
+    }
+
     @Override
     public void reset() {
         super.reset();

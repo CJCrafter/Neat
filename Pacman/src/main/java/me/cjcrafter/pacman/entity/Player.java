@@ -139,8 +139,8 @@ public abstract class Player extends Entity {
         int yScreen;
 
         {
-            double boardPositionX = tile.getX() * tileWidth + offset.getX();
-            double boardPositionY = tile.getY() * tileHeight + offset.getY();
+            double boardPositionX = (tile.getX() + offset.getX() / TILE_SIZE) * tileWidth;
+            double boardPositionY = (tile.getY() + offset.getY() / TILE_SIZE) * tileHeight;
             double middleOffsetX = sprite.getTileWidth() * scale / 2.0;
             double middleOffsetY = sprite.getTileHeight() * scale / 2.0;
 

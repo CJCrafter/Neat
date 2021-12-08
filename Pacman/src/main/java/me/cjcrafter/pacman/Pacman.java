@@ -30,6 +30,7 @@ public class Pacman {
 
     private Timer tickTimer;
     private boolean running;
+    private boolean pause;
 
     private final Neat neat;
     private final List<Board> boards;
@@ -105,6 +106,14 @@ public class Pacman {
         //frame.addKeyListener(keys);
     }
 
+    public boolean isPause() {
+        return pause;
+    }
+
+    public void setPause(boolean pause) {
+        this.pause = pause;
+    }
+
     public void start() {
         running = true;
         run();
@@ -115,21 +124,21 @@ public class Pacman {
         Timer second = new Timer(1);
 
         while (running) {
-            if (tickTimer.tick()) {
+            if (tickTimer.tick() && !pause) {
                 tick();
                 render();
                 updates++;
+            } else {
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             if (second.tick()) {
                 System.out.println("Updates: " + updates);
                 updates = 0;
-            }
-
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
     }
@@ -144,8 +153,12 @@ public class Pacman {
 
         if (!oneAlive) {
             neat.evolve();
-            boards.forEach(Board::reset);
+            reset();
         }
+    }
+
+    public void reset() {
+        boards.forEach(Board::reset);
     }
 
     private void render() {
@@ -160,5 +173,9 @@ public class Pacman {
         System.out.println("New tickrate: " + tickRate);
         tickTimer = new Timer(tickRate);
         TICKS_PER_SECOND = tickRate;
+    }
+
+    public List<Board> getBoards() {
+        return boards;
     }
 }

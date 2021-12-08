@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 public class Neat implements Serializable {
@@ -303,7 +304,7 @@ public class Neat implements Serializable {
         json.put("outputNodes", outputNodes);
         json.put("maxClients", maxClients);
 
-        json.put("connections", new ListDeserializer(connectionCache.keySet()).deserialize());
+        json.put("connections", new ListDeserializer(connectionCache.values()).deserialize());
         json.put("nodes", new ListDeserializer(nodeCache).deserialize());
         json.put("clients", new ListDeserializer(clients).deserialize());
         return json;
@@ -324,9 +325,9 @@ public class Neat implements Serializable {
             throw new IllegalArgumentException("Cannot serialize Neat from " + json);
         }
 
-        int inputNodes = (int) json.get("inputNodes");
-        int outputNodes = (int) json.get("outputNodes");
-        int maxClients = (int) json.get("maxClients");
+        int inputNodes = ((Long) json.get("inputNodes")).intValue();
+        int outputNodes = ((Long) json.get("outputNodes")).intValue();
+        int maxClients = ((Long) json.get("maxClients")).intValue();
 
         properties = new DoubleMap<>();
         properties.serialize((JSONObject) json.get("properties"));
@@ -348,17 +349,19 @@ public class Neat implements Serializable {
 
         connectionArray.forEach(obj -> {
             JSONObject connectionJsonData = (JSONObject) obj;
-            NodeGene from = nodeCache.get((int) connectionJsonData.get("from"));
-            NodeGene to = nodeCache.get((int) connectionJsonData.get("to"));
+            NodeGene from = nodeCache.get(((Long) connectionJsonData.get("from")).intValue());
+            NodeGene to = nodeCache.get(((Long) connectionJsonData.get("to")).intValue());
 
             ConnectionGene connection = new ConnectionGene(from, to);
             connection.serialize(connectionJsonData);
             connectionCache.put(connection, connection);
         });
 
+        AtomicInteger i = new AtomicInteger();
         clientArray.forEach(obj -> {
             JSONObject clientJsonData = (JSONObject) obj;
             Client client = new Client(this);
+            client.neat = this;
             client.serialize(clientJsonData);
             clients.add(client);
         });

@@ -71,28 +71,27 @@ public class NeatSnake extends Snake {
         int dx = getHead().dx(board.getApple());
         int dy = getHead().dy(board.getApple());
         switch (getLastDirection()) {
-            case UP:
+            case UP -> {
                 appleForward = dy < 0 && dx == 0;
-                appleLeft    = dx < 0 && dy == 0;
-                appleRight   = dx > 0 && dy == 0;
-                break;
-            case DOWN:
+                appleLeft = dx < 0 && dy == 0;
+                appleRight = dx > 0 && dy == 0;
+            }
+            case DOWN -> {
                 appleForward = dy > 0 && dx == 0;
-                appleLeft    = dx > 0 && dy == 0;
-                appleRight   = dx < 0 && dy == 0;
-                break;
-            case LEFT:
+                appleLeft = dx > 0 && dy == 0;
+                appleRight = dx < 0 && dy == 0;
+            }
+            case LEFT -> {
                 appleForward = dx < 0 && dy == 0;
-                appleLeft    = dy > 0 && dx == 0;
-                appleRight   = dy < 0 && dx == 0;
-                break;
-            case RIGHT:
+                appleLeft = dy > 0 && dx == 0;
+                appleRight = dy < 0 && dx == 0;
+            }
+            case RIGHT -> {
                 appleForward = dx > 0 && dy == 0;
-                appleLeft    = dy < 0 && dx == 0;
-                appleRight   = dy > 0 && dx == 0;
-                break;
-            default:
-                throw new RuntimeException();
+                appleLeft = dy < 0 && dx == 0;
+                appleRight = dy > 0 && dx == 0;
+            }
+            default -> throw new RuntimeException();
         }
 
         double[] output = client.getCalculator().calculate(forward, left, right, appleForward ? 1 : 0, appleLeft ? 1 : 0, appleRight ? 1 : 0);

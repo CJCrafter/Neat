@@ -56,7 +56,7 @@ public class NodeGene extends Gene {
     public void serialize(JSONObject json) {
         super.serialize(json);
 
-        type = switch ((int) json.get("type")) {
+        type = switch (((Long) json.get("type")).intValue()) {
             case 0 -> NodeType.INPUT;
             case 1 -> NodeType.OUTPUT;
             case 2 -> NodeType.HIDDEN;

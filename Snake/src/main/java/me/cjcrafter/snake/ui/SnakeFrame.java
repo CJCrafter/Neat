@@ -21,12 +21,12 @@ public class SnakeFrame extends NeatFrame {
     @Override
     protected void fillButtonHolder() {
         super.fillButtonHolder();
-        buttonHolder.setLayout(new GridLayout(0, 2));
 
-        JScrollBar tickSpeedBar = new JScrollBar(JScrollBar.HORIZONTAL, 10, 5, 0, 500);
-        tickSpeedBar.setToolTipText("Tick Speed");
-        tickSpeedBar.addAdjustmentListener(e -> game.setTickRate(e.getValue()));
-        buttonHolder.add(tickSpeedBar);
+        JMenu game = new JMenu("Game");
+
+        JSlider tickRate = new JSlider(JSlider.HORIZONTAL, 0, 400, 10);
+        tickRate.addChangeListener(e -> this.game.setTickRate(tickRate.getValue()));
+        game.add(tickRate);
 
         JCheckBox showGenome = new JCheckBox("Show Genomes");
         showGenome.addItemListener(e -> {
@@ -34,6 +34,8 @@ public class SnakeFrame extends NeatFrame {
                 client.setShowGenome(((JCheckBox) e.getItem()).isSelected());
             }
         });
-        buttonHolder.add(showGenome);
+
+        game.add(showGenome);
+        menu.add(game);
     }
 }

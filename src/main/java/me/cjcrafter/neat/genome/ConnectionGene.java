@@ -96,7 +96,7 @@ public class ConnectionGene extends Gene implements Serializable {
 
         weight = (double) json.get("weight");
         enabled = (boolean) json.get("enabled");
-        replaceId = (int) json.get("replaceId");
+        replaceId = ((Long) json.get("replaceId")).intValue();
     }
 
     @Override

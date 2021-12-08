@@ -118,7 +118,7 @@ public class NeatFrame extends JFrame {
 
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file1 = chooser.getSelectedFile();
-                neat.load(file1);
+                loadNeat(file1);
                 System.out.println("Loading from: " + file1.getName() + ".");
             } else {
                 System.out.println("Load was cancelled by user.");
@@ -127,6 +127,10 @@ public class NeatFrame extends JFrame {
         file.add(load);
 
         menu.add(file);
+    }
+
+    public void loadNeat(File file) {
+        neat.load(file);
     }
 
     public void paintScreen(Graphics g) {

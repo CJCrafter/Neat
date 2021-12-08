@@ -12,7 +12,6 @@ import java.util.Objects;
 public class Client implements Comparable<Client>, Serializable {
 
     private Calculator calculator;
-    private Neat neat;
     private Genome genome;
     private double score;
     private Species species;
@@ -20,6 +19,7 @@ public class Client implements Comparable<Client>, Serializable {
     public Color speciesColor;
 
     public Species parentSpecies;
+    public Neat neat;
 
     public Client(int id) {
         this.id = id;
@@ -72,6 +72,8 @@ public class Client implements Comparable<Client>, Serializable {
     public void mutate(Mutation mutation) {
         if (mutation.mutate(genome))
             calculator = null;
+
+        System.out.println(genome.getConnections());
     }
 
     @Override
@@ -92,9 +94,9 @@ public class Client implements Comparable<Client>, Serializable {
         genome = new Genome(neat);
         genome.serialize((JSONObject) json.get("genome"));
 
-        id = (int) json.get("id");
+        id = ((Long) json.get("id")).intValue();
         score = (double) json.get("score");
-        speciesColor = json.containsKey("color") ? new Color((int) json.get("color")) : null;
+        speciesColor = json.containsKey("color") ? new Color(((Long) json.get("color")).intValue()) : null;
     }
 
     @Override
