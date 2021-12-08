@@ -1,3 +1,8 @@
 # Project exclude paths
-/target/
-/run/
+target/
+.idea/
+*.inl
+
+# Running/Test data should not be committed
+run/*
+!run/release/
