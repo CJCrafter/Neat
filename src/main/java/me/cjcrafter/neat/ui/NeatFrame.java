@@ -79,7 +79,7 @@ public class NeatFrame extends JFrame {
     protected void fillButtonHolder() {
         setJMenuBar(menu);
 
-        JMenu file = new JMenu("File");
+        JMenu menu = new JMenu("Neat");
 
         // We would like to save the current NEAT instance to a file. To do
         // this, the player must choose some file to save it to. We must also
@@ -100,7 +100,7 @@ public class NeatFrame extends JFrame {
 
         JMenuItem save = new JMenuItem("Save As");
         save.addActionListener(e -> {
-            int returnVal = chooser.showSaveDialog(menu);
+            int returnVal = chooser.showSaveDialog(this.menu);
 
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file1 = chooser.getSelectedFile();
@@ -110,11 +110,11 @@ public class NeatFrame extends JFrame {
                 System.out.println("Save was cancelled by user.");
             }
         });
-        file.add(save);
+        menu.add(save);
 
         JMenuItem load = new JMenuItem("Load");
         load.addActionListener(e -> {
-            int returnVal = chooser.showOpenDialog(menu);
+            int returnVal = chooser.showOpenDialog(this.menu);
 
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file1 = chooser.getSelectedFile();
@@ -124,9 +124,39 @@ public class NeatFrame extends JFrame {
                 System.out.println("Load was cancelled by user.");
             }
         });
-        file.add(load);
+        menu.add(load);
 
-        menu.add(file);
+        JMenuItem reset = new JMenuItem("Reset");
+        reset.addActionListener(e -> {
+            int input = JOptionPane.showConfirmDialog(
+                    null, "Save", "Do you want to save NEAT?",
+                    JOptionPane.YES_NO_OPTION, JOptionPane.ERROR_MESSAGE
+            );
+
+            // 0 == save, 0 == no
+            if (input == 0) {
+                int returnVal = chooser.showSaveDialog(this.menu);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                    File file1 = chooser.getSelectedFile();
+                    neat.save(file1);
+                    System.out.println("Saving to: " + file1.getName() + ".");
+                } else {
+                    System.out.println("Save was cancelled by user.");
+                }
+            }
+        });
+        menu.add(reset);
+
+        JCheckBox showGenome = new JCheckBox("Show Genome");
+        showGenome.addItemListener(e -> {
+            for (ClientScreen client : clients) {
+                client.setShowGenome(((JCheckBox) e.getItem()).isSelected());
+            }
+        });
+        menu.add(showGenome);
+
+        this.menu.add(menu);
     }
 
     public void loadNeat(File file) {

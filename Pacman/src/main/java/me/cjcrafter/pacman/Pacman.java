@@ -41,7 +41,7 @@ public class Pacman {
         TiledSpriteSheet sprite = new TiledSpriteSheet("ghost-sprite.png", (byte) 4, 20, 20);
 
         boards = new LinkedList<>();
-        neat = new Neat(4, 4, CLIENTS);
+        neat = new Neat(8, 4, CLIENTS);
         frame = new PacmanFrame(neat, this);
 
         for (int i = 0; i < CLIENTS; i++) {

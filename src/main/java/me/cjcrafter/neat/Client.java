@@ -72,8 +72,6 @@ public class Client implements Comparable<Client>, Serializable {
     public void mutate(Mutation mutation) {
         if (mutation.mutate(genome))
             calculator = null;
-
-        System.out.println(genome.getConnections());
     }
 
     @Override

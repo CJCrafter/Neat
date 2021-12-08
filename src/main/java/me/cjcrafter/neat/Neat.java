@@ -130,6 +130,19 @@ public class Neat implements Serializable {
         sortSpecies();
     }
 
+    public void reset() {
+        properties = null;
+        connectionCache = null;
+        nodeCache = null;
+        species = null;
+
+        List<Client> clients = new ArrayList<>(this.clients);
+        init(inputNodes, outputNodes, maxClients);
+        this.clients = clients;
+
+        clients.forEach(client -> client.setGenome(newGenome()));
+    }
+
     public int getInputNodes() {
         return inputNodes;
     }
@@ -289,6 +302,12 @@ public class Neat implements Serializable {
         for (Species species : species) {
             System.out.printf("%-13s| %-9s%n", round(species.getScore()), species.size());
         }
+    }
+
+    public void changeInputNodes(int newInputNodes) {
+        int dx = newInputNodes - inputNodes;
+
+
     }
 
     private double round(double a) {

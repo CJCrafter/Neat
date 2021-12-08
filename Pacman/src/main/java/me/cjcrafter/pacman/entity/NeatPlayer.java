@@ -4,6 +4,7 @@ import me.cjcrafter.neat.Client;
 import me.cjcrafter.pacman.Direction;
 import me.cjcrafter.pacman.Vector2i;
 import me.cjcrafter.pacman.board.Board;
+import me.cjcrafter.pacman.board.TileState;
 
 public class NeatPlayer extends Player {
 
@@ -40,7 +41,11 @@ public class NeatPlayer extends Player {
                 look(getDirection()),
                 look(getDirection().left()),
                 look(getDirection().right()),
-                look(getDirection().behind())
+                look(getDirection().behind()),
+                hasPellet(getDirection()),
+                hasPellet(getDirection().left()),
+                hasPellet(getDirection().right()),
+                hasPellet(getDirection().behind())
         };
 
         double[] output = client.getCalculator().calculate(input);
@@ -51,6 +56,10 @@ public class NeatPlayer extends Player {
             case 3 -> getDirection().behind();
             default -> throw new IllegalStateException("what the hell");
         };
+
+        if (getDirection() != direction && direction != getDirection().behind()) {
+            previousDirection = getDirection();
+        }
 
         double speed = getSpeed();
         if (canMove(direction)) {
@@ -83,7 +92,7 @@ public class NeatPlayer extends Player {
         else
             ticksSinceLastScore++;
 
-        if (ticksSinceLastScore > 100)
+        if (ticksSinceLastScore > (int) 600)
             kill();
 
         client.setScore(newScore);
@@ -91,6 +100,29 @@ public class NeatPlayer extends Player {
 
     private double look(Direction direction) {
         return canMove(direction) ? 1.0 : 0.0;
+    }
+
+    private double hasPellet(Direction direction) {
+        int x = tile.getX();
+        int y = tile.getY();
+
+        for (int i = 0; i < 10; i++) {
+            x += direction.getDx();
+            y += direction.getDy();
+
+            // We don't care if X goes out of bounds, since we can move through
+            // sides of the board. However, if Y goes out of bounds, we should
+            // stop looping
+            if (y >= board.getHeight() || y <= 0)
+                break;
+
+            TileState state = board.getTile(x, y);
+            if (state == TileState.PELLET || state == TileState.POWER_PELLET) {
+                return 1.0;
+            }
+        }
+
+        return 0.0;
     }
 
     private static int getLargest(double[] output) {
