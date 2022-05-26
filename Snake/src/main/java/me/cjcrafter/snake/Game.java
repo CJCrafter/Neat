@@ -85,12 +85,6 @@ public class Game {
                 System.out.println(neat.debugGenome());
                 frames = 0;
             }
-
-            try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 

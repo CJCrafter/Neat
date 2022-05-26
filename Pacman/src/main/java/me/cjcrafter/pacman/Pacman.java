@@ -128,12 +128,6 @@ public class Pacman {
                 tick();
                 render();
                 updates++;
-            } else {
-                try {
-                    Thread.sleep(1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             }
 
             if (second.tick()) {

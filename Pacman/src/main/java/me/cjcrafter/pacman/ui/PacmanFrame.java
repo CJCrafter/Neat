@@ -32,7 +32,7 @@ public class PacmanFrame extends NeatFrame {
         pause.addActionListener(e -> pacman.setPause(pause.isSelected()));
         game.add(pause);
 
-        JSlider tickRate = new JSlider(JSlider.HORIZONTAL, 0, 200, 60);
+        JSlider tickRate = new JSlider(JSlider.HORIZONTAL, 0, 1000, 60);
         tickRate.addChangeListener(e -> pacman.setTickRate((float) tickRate.getValue()));
         game.add(tickRate);
 

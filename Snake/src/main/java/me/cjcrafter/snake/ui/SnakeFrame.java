@@ -24,7 +24,7 @@ public class SnakeFrame extends NeatFrame {
 
         JMenu game = new JMenu("Game");
 
-        JSlider tickRate = new JSlider(JSlider.HORIZONTAL, 0, 400, 10);
+        JSlider tickRate = new JSlider(JSlider.HORIZONTAL, 0, 800, 10);
         tickRate.addChangeListener(e -> this.game.setTickRate(tickRate.getValue()));
         game.add(tickRate);
 
